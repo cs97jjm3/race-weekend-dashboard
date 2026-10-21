@@ -1,0 +1,6 @@
+﻿00:05:09.945{"Messages": [{"Category": "Flag", "Flag": "YELLOW", "Scope": "Sector", "Sector": 9, "Message": "YELLOW IN TRACK SECTOR 9"}]}
+00:05:10.945{"Messages": {"1": {"Category": "Flag", "Flag": "DOUBLE YELLOW", "Scope": "Sector", "Sector": 10, "Message": "DOUBLE YELLOW IN TRACK SECTOR 10"}}}
+00:06:09.945{"Messages": {"2": {"Category": "Flag", "Flag": "CLEAR", "Scope": "Sector", "Sector": 9, "Message": "CLEAR IN TRACK SECTOR 9"}}}
+00:06:09.945{"Messages": {"3": {"Category": "Flag", "Flag": "CLEAR", "Scope": "Sector", "Sector": 10, "Message": "CLEAR IN TRACK SECTOR 10"}}}
+00:11:59.010{"Messages": {"4": {"Category": "SafetyCar", "Message": "SAFETY CAR DEPLOYED"}}}
+00:19:28.397{"Messages": {"5": {"Category": "Other", "Message": "FIA STEWARDS: 5 SECOND TIME PENALTY FOR CAR 1 (VER) - CAUSING A COLLISION"}}}

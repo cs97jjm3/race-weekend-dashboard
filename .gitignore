@@ -1,0 +1,11 @@
+# your private settings (API key, phone alert codes) - never shared
+config.py
+
+# things the dashboard makes as it runs
+recordings/
+tracks/
+predictions.json
+predictions.json.*
+__pycache__/
+*.pyc
+*.log

@@ -1,0 +1,5 @@
+﻿00:00:00.400{"Status": "1", "Message": "AllClear"}
+00:05:09.945{"Status": "2", "Message": "Yellow"}
+00:06:10.945{"Status": "1", "Message": "AllClear"}
+00:11:58.910{"Status": "4", "Message": "SCDeployed"}
+00:16:27.383{"Status": "1", "Message": "AllClear"}
