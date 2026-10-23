@@ -15,7 +15,7 @@ TAGS = {"sc": "rotating_light", "red": "red_circle", "pit": "wrench", "lead": "t
         "rc": "warning"}
 
 
-def ask_claude(prompt, max_tokens=80, timeout=30):
+def ask_claude(prompt, max_tokens=1000, timeout=30):
     """One question to Claude, one short answer back. Raises with a readable reason if it fails."""
     body = json.dumps({"model": config.AI_MODEL, "max_tokens": max_tokens,
                        "messages": [{"role": "user", "content": prompt}]}).encode()

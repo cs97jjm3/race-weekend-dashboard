@@ -4,6 +4,7 @@ config.py
 # things the dashboard makes as it runs
 recordings/
 tracks/
+history_cache/
 predictions.json
 predictions.json.*
 __pycache__/

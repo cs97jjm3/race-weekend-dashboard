@@ -40,6 +40,16 @@
   .filters button { background: none; border: 1px solid var(--line); color: var(--dim); font: inherit; font-size: 17px; padding: 3px 14px; border-radius: 4px; cursor: pointer; }
   .filters button.on { color: #0b0d10; background: var(--accent); border-color: var(--accent); font-weight: 600; }
   .show { display: inline-flex; gap: 6px; align-items: center; margin-left: 18px; padding-left: 18px; border-left: 1px solid var(--line); }
+  .filters .show button.lay { padding-left: 12px; } .filters .show button.lay::before { display: none; }
+  #laypop { position: absolute; z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.5); display: none; min-width: 250px; }
+  #laypop.open { display: block; }
+  #laypop .t { color: var(--dim); font-size: 14px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  #laypop .row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 18px; }
+  #laypop .row span { flex: 1; }
+  #laypop button { background: none; border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 16px; padding: 0 10px; border-radius: 4px; cursor: pointer; }
+  #laypop button:disabled { opacity: .3; cursor: default; }
+  #laypop .reset { margin-top: 8px; color: var(--dim); }
   .show .lbl { color: var(--dim); font-size: 15px; letter-spacing: 1px; text-transform: uppercase; margin-right: 2px; }
   .show button { background: none; border: 1px solid var(--line); color: var(--dim); font: inherit; font-size: 16px; padding: 2px 12px 2px 26px; border-radius: 4px; cursor: pointer; position: relative; }
   .show button::before { content: ""; position: absolute; left: 9px; top: 50%; width: 9px; height: 9px; margin-top: -5px; border: 1.5px solid var(--dim); border-radius: 2px; }
@@ -180,6 +190,49 @@
   .sendgrid svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .sendnote { margin-top: 14px; color: var(--dim); font-size: 15px; }
   @media (max-width: 900px) { #sendmodal .sheet { height: auto; } }
+  /* driver and circuit history */
+  #rows tr[data-tla] { cursor: pointer; } #rows tr[data-tla]:hover td { background: #1a2028; }
+  #gp { cursor: pointer; } #gp:hover { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 6px; }
+  #histmodal .sheet { width: min(1100px, 100%); height: min(860px, 100%); }
+  .histbody { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 22px 24px; }
+  .histbody .loading { color: var(--dim); font-size: 20px; padding: 40px 0; text-align: center; }
+  .hhero { display: flex; align-items: flex-end; gap: 18px; padding-bottom: 14px; margin-bottom: 18px; border-bottom: 3px solid var(--tone, var(--accent)); }
+  .hhero .num { font: 700 84px/0.8 "Barlow Condensed", sans-serif; color: var(--tone, var(--accent)); }
+  .hhero h3 { margin: 0; font-size: 40px; line-height: 1; text-transform: uppercase; letter-spacing: .5px; }
+  .hhero .sub { color: var(--dim); font-size: 19px; margin-top: 4px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 26px; }
+  .tile { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+  .tile b { display: block; font: 700 46px/1 "Barlow Condensed", sans-serif; color: var(--ink); }
+  .tile span { color: var(--dim); font-size: 15px; letter-spacing: 1px; text-transform: uppercase; }
+  .tile.hot b { color: var(--accent); }
+  .histbody h4 { margin: 0 0 10px; font-size: 16px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+  .hsec { margin-bottom: 28px; }
+  .seas { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(28px, 1fr); gap: 4px; align-items: end; height: 190px; }
+  .seas .c { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 3px; }
+  .seas .bar { width: 100%; border-radius: 3px 3px 0 0; background: #33404d; min-height: 4px; }
+  .seas .bar.win { background: var(--accent); } .seas .bar.pod { background: #e9edf2; } .seas .bar.pts { background: var(--green); }
+  .seas .bar.dnf { background: var(--red); opacity: .55; }
+  .seas .p { font: 600 13px "JetBrains Mono", monospace; color: var(--ink); }
+  .seas .r { font-size: 13px; color: var(--dim); text-transform: uppercase; letter-spacing: .5px; }
+  .seaskey { display: flex; gap: 16px; color: var(--dim); font-size: 15px; margin-top: 8px; }
+  .seaskey i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; text-align: center; min-width: 74px; }
+  .chip b { display: block; font: 700 26px/1.1 "Barlow Condensed", sans-serif; }
+  .chip span { color: var(--dim); font-size: 14px; }
+  .chip.win b { color: var(--accent); } .chip.pod b { color: #fff; } .chip.dnf b { color: #ff6b81; }
+  .h2h { display: grid; grid-template-columns: 110px 60px 1fr 60px; gap: 8px 12px; align-items: center; font-size: 18px; max-width: 760px; }
+  .h2h .lbl { color: var(--dim); text-transform: uppercase; letter-spacing: 1px; font-size: 15px; }
+  .h2h .v { font: 700 26px "Barlow Condensed", sans-serif; text-align: center; }
+  .h2h .track { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: #252c35; }
+  .h2h .track i { display: block; height: 100%; }
+  .h2h .who { color: var(--dim); font-size: 15px; text-align: center; }
+  .wtable { width: 100%; border-collapse: collapse; font-size: 18px; }
+  .wtable th { text-align: left; color: var(--dim); font-weight: 500; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border-bottom: 1px solid var(--line); }
+  .wtable td { padding: 6px 10px; border-bottom: 1px solid #1a2028; }
+  .wtable td.y { font-family: "JetBrains Mono", monospace; font-size: 15px; color: var(--dim); }
+  .wtable tr.mine td { color: var(--accent); }
+  .histnote { color: var(--dim); font-size: 14px; margin-top: 18px; }
   /* sectors and qualifying */
   .secs { display: inline-flex; gap: 3px; vertical-align: middle; }
   .secs i { width: 16px; height: 9px; border-radius: 2px; background: #252c35; display: inline-block; }
@@ -310,7 +363,8 @@
 </div>
 <div class="filters"><span id="filters" style="display:flex;gap:8px"></span>
   <span class="show" id="show"><span class="lbl">Show</span>
-    <button data-p="tower" class="on">Timings</button><button data-p="mapsec" class="on">Map &amp; charts</button><button data-p="feedsec" class="on">Feed</button></span>
+    <button data-p="tower" class="on">Timings</button><button data-p="mapsec" class="on">Map &amp; charts</button><button data-p="feedsec" class="on">Feed</button><button class="lay" id="laybtn" title="Put the panels in a different order">Layout ▾</button></span>
+  <div id="laypop" role="dialog" aria-label="Panel order"></div>
   <span class="show hidden" id="aictl"><span class="lbl">AI</span>
     <button id="aitoggle" class="on">Comments</button><button id="aiask" class="ask">What's happening?</button></span>
   <div class="key" id="key"></div></div>
@@ -330,6 +384,12 @@
       </div>
       <div class="sendnote" id="sendnote">Send it as a private message, not a public post. Anyone with the link and code can watch.</div>
     </div>
+  </div>
+</div>
+<div class="modal" id="histmodal" role="dialog" aria-modal="true" aria-labelledby="histtitle">
+  <div class="sheet">
+    <header><h2 id="histtitle">History</h2><span class="sub" id="histsub"></span><button id="histclose">Close ✕</button></header>
+    <div class="histbody" id="histbody"></div>
   </div>
 </div>
 <div class="modal" id="wxmodal" role="dialog" aria-modal="true" aria-labelledby="wxtitle">
@@ -729,7 +789,7 @@ function render(s) {
     const cutline = q && q.cutAfter && r.pos === q.cutAfter && !r.knockedOut
       ? `<tr class="cutline"><td colspan="8"><div><span>DROP ZONE</span></div></td></tr>` : "";
     const tyre = r.tyre ? `<span class="tyre ${esc(r.tyre)}">${esc(r.tyre[0])}</span><span class="age">${r.tyreAge ?? ""}</span>` : "";
-    return `<tr class="${cls}">
+    return `<tr class="${cls}" data-tla="${esc(r.tla)}" data-col="${esc(r.colour)}" title="Click for ${esc(r.name)}'s history">
       <td class="pos">${r.out ? "OUT" : (r.pos < 99 ? r.pos : "")}</td>
       <td><div class="drv"><div class="stripe" style="background:${esc(r.colour)}"></div>
         <span class="tla">${esc(r.tla)}</span>${(r.pens || []).map(p => `<span class="pen" title="Penalty">${esc(p)}</span>`).join("")}<span class="team">${esc(r.team)}</span></div></td>
@@ -1076,24 +1136,60 @@ drawSoundBtn();
 // ---------- show / hide panels ----------
 const WIDTHS = {tower: "minmax(600px, 1.3fr)", mapsec: "minmax(320px, 1fr)", feedsec: "minmax(400px, 1fr)"};
 let shown = {tower: true, mapsec: true, feedsec: true};
+const NAMES = {tower: "Timings", mapsec: "Map & charts", feedsec: "Feed"};
+let order = ["tower", "mapsec", "feedsec"];
+try { const o = JSON.parse(localStorage.getItem("rwd-order") || "null");
+      if (Array.isArray(o) && o.length === 3 && o.every(k => k in NAMES)) order = o; } catch (e) {}
+function drawLayPop() {
+  const pop = document.getElementById("laypop");
+  pop.innerHTML = `<div class="t">Left to right</div>` + order.map((k, i) =>
+    `<div class="row"><span>${NAMES[k]}</span><button data-mv="${i}" data-d="-1" ${i === 0 ? "disabled" : ""} aria-label="Move left">◀</button>`
+    + `<button data-mv="${i}" data-d="1" ${i === 2 ? "disabled" : ""} aria-label="Move right">▶</button></div>`).join("")
+    + `<button class="reset" id="layreset">Back to normal</button>`;
+  pop.querySelectorAll("button[data-mv]").forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    const i = +b.dataset.mv, j = i + +b.dataset.d;
+    [order[i], order[j]] = [order[j], order[i]]; saveOrder();
+  });
+  document.getElementById("layreset").onclick = ev => { ev.stopPropagation(); order = ["tower", "mapsec", "feedsec"]; saveOrder(); };
+}
+function saveOrder() {
+  try { localStorage.setItem("rwd-order", JSON.stringify(order)); } catch (e) {}
+  drawLayPop(); layout();
+}
+document.getElementById("laybtn").onclick = ev => {
+  ev.stopPropagation();
+  const pop = document.getElementById("laypop"), r = ev.currentTarget.getBoundingClientRect();
+  drawLayPop();
+  pop.style.left = r.left + "px"; pop.style.top = (r.bottom + 6 + window.scrollY) + "px";
+  pop.classList.toggle("open");
+};
+document.addEventListener("click", ev => { if (!ev.target.closest("#laypop")) document.getElementById("laypop").classList.remove("open"); });
 try { Object.assign(shown, JSON.parse(localStorage.getItem("rwd-shown") || "{}")); } catch (e) {}
 function layout() {
   const main = document.querySelector("main");
   const vis = Object.keys(shown).filter(k => shown[k]);
   for (const k of Object.keys(shown)) document.getElementById(k).classList.toggle("hidden", !shown[k]);
-  document.querySelectorAll("#show button").forEach(b => b.classList.toggle("on", shown[b.dataset.p]));
-  if (vis.length === 3 || window.innerWidth <= 1000) {
+  document.querySelectorAll("#show button[data-p]").forEach(b => b.classList.toggle("on", shown[b.dataset.p]));
+  const wide = window.innerWidth > 1500;
+  order.forEach((k, i) => { document.getElementById(k).style.order = wide || vis.length < 3 ? i : ""; });
+  const vis2 = order.filter(k => shown[k]);
+  if (window.innerWidth <= 1000 || (vis.length === 3 && !wide)) {
     main.style.gridTemplateColumns = ""; main.style.gridTemplateRows = ""; document.getElementById("tower").style.gridRow = "";
+  } else if (vis.length === 3) {
+    // all three side by side, in the chosen order
+    main.style.gridTemplateColumns = vis2.map(k => WIDTHS[k]).join(" ");
+    main.style.gridTemplateRows = "1fr"; document.getElementById("tower").style.gridRow = "auto";
   } else {
     // the map (or else the feed) takes up whatever room is left
     const grow = vis.includes("mapsec") ? "mapsec" : vis.includes("feedsec") ? "feedsec" : vis[0];
-    main.style.gridTemplateColumns = vis.map(k => k === grow ? "1fr" : WIDTHS[k]).join(" ");
+    main.style.gridTemplateColumns = vis2.map(k => k === grow ? "1fr" : WIDTHS[k]).join(" ");
     main.style.gridTemplateRows = "1fr";
     document.getElementById("tower").style.gridRow = "auto";
   }
   if (shown.mapsec && trackPath) drawCars(latestRows);
 }
-document.querySelectorAll("#show button").forEach(b => b.onclick = () => {
+document.querySelectorAll("#show button[data-p]").forEach(b => b.onclick = () => {
   const k = b.dataset.p;
   if (shown[k] && Object.values(shown).filter(Boolean).length === 1) return;  // keep at least one
   shown[k] = !shown[k];
@@ -1147,6 +1243,89 @@ document.getElementById("s-copy").onclick = async () => {
 document.getElementById("sendclose").onclick = () => document.getElementById("sendmodal").classList.remove("open");
 document.getElementById("sendmodal").onclick = ev => { if (ev.target.id === "sendmodal") ev.target.classList.remove("open"); };
 document.addEventListener("keydown", ev => { if (ev.key === "Escape") document.getElementById("sendmodal").classList.remove("open"); });
+
+// ----- driver and circuit history (from Jolpica, the old Ergast) -----
+const hm = document.getElementById("histmodal"), hb = document.getElementById("histbody");
+let histToken = 0;
+function closeHist() { hm.classList.remove("open"); histToken++; }
+document.getElementById("histclose").onclick = closeHist;
+hm.onclick = ev => { if (ev.target === hm) closeHist(); };
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") closeHist(); });
+function tile(v, label, hot) { return `<div class="tile ${hot ? "hot" : ""}"><b>${esc(String(v))}</b><span>${esc(label)}</span></div>`; }
+function cls4(label, pos) { return label === "DNF" || label === "DSQ" || label === "DNS" ? "dnf" : pos === 1 ? "win" : pos <= 3 ? "pod" : ""; }
+async function openDriver(code, colour) {
+  const me = ++histToken;
+  hm.classList.add("open"); hm.querySelector(".sheet").style.setProperty("--tone", colour || "var(--accent)");
+  document.getElementById("histtitle").textContent = code; document.getElementById("histsub").textContent = "";
+  hb.innerHTML = `<div class="loading">Looking up ${esc(code)}'s record…<br><small>The first time can take up to 10 seconds. After that it's saved on the laptop.</small></div>`;
+  let d;
+  try { d = await (await fetch("/history/driver?code=" + encodeURIComponent(code))).json(); }
+  catch (e) { d = {error: "Couldn't reach the dashboard program"}; }
+  if (me !== histToken) return;
+  if (d.error) { hb.innerHTML = `<div class="loading">${esc(d.error)}</div>`; return; }
+  const c = d.career, races = c.races || 0;
+  document.getElementById("histtitle").textContent = "Driver";
+  document.getElementById("histsub").textContent = d.team;
+  const fans = (lastState && lastState.rows || []).find(r => r.tla === d.code);
+  let html = `<div class="hhero"><div class="num">${esc(d.number || "")}</div><div><h3>${esc(d.name)}</h3>
+    <div class="sub">${esc(d.team)} · ${esc(d.nationality)}${c.firstYear ? " · in F1 since " + esc(c.firstYear) : ""}${fans && fans.watchers.length ? " · followed by " + esc(fans.watchers.join(" and ")) : ""}</div></div></div>`;
+  html += `<div class="tiles">${tile(races, "Races")}${tile(c.wins, "Wins", c.wins > 0)}${tile(c.podiums, "Podiums")}${tile(c.poles, "Poles")}
+    ${tile(c.titles, c.titles === 1 ? "Title" : "Titles", c.titles > 0)}${tile(races ? Math.round(100 * c.wins / races) + "%" : "–", "Win rate")}</div>`;
+  if (d.season.length) {
+    const pts = d.season.reduce((a, r) => a + r.points, 0);
+    html += `<div class="hsec"><h4>This season, race by race · ${pts % 1 ? pts.toFixed(1) : pts} points</h4><div class="seas">` + d.season.map(r => {
+      const k = cls4(r.label, r.pos), h = r.finished || r.pos ? Math.max(6, 100 - ((r.pos || 22) - 1) * 4.3) : 100;
+      return `<div class="c" title="${esc(r.race)}: ${esc(r.label)}${r.grid ? ", started P" + r.grid : ""}, ${r.points} pts">
+        <span class="p">${r.label === "DNF" || r.label === "DSQ" || r.label === "DNS" ? esc(r.label) : r.pos}</span>
+        <div class="bar ${k || (r.points > 0 ? "pts" : "")}" style="height:${h * 0.7}%"></div><span class="r">${esc(r.race.slice(0, 3))}</span></div>`;
+    }).join("") + `</div><div class="seaskey"><span><i style="background:var(--accent)"></i>Win</span><span><i style="background:#e9edf2"></i>Podium</span>
+      <span><i style="background:var(--green)"></i>Points</span><span><i style="background:#33404d"></i>No points</span><span><i style="background:var(--red);opacity:.55"></i>Didn't finish</span></div></div>`;
+  }
+  if (d.circuit) {
+    html += `<div class="hsec"><h4>At ${esc(d.circuit)}</h4>` + (d.here.length
+      ? `<div class="chips">` + d.here.map(r => `<div class="chip ${cls4(r.label, r.pos)}" title="${esc(r.team)}${r.grid ? ", started P" + r.grid : ""}"><b>${esc(r.label)}</b><span>${esc(r.year)}</span></div>`).join("") + `</div>`
+      : `<div class="histnote">First race here.</div>`) + `</div>`;
+  }
+  if (d.mate) {
+    const m = d.mate, me2 = d.name.split(" ").slice(-1)[0], them = m.name.split(" ").slice(-1)[0];
+    const bar = (a, b) => { const t = a + b || 1; return `<div class="track"><i style="width:${100 * a / t}%;background:var(--tone, var(--accent))"></i><i style="width:${100 * b / t}%;background:#5b6673"></i></div>`; };
+    const n = x => x % 1 ? x.toFixed(1) : x;
+    html += `<div class="hsec"><h4>Against ${esc(m.name)} this season</h4><div class="h2h">
+      <span></span><span class="who">${esc(me2)}</span><span></span><span class="who">${esc(them)}</span>
+      <span class="lbl">Race</span><span class="v">${m.race[0]}</span>${bar(m.race[0], m.race[1])}<span class="v">${m.race[1]}</span>
+      <span class="lbl">Qualifying</span><span class="v">${m.quali[0]}</span>${bar(m.quali[0], m.quali[1])}<span class="v">${m.quali[1]}</span>
+      <span class="lbl">Points</span><span class="v">${n(m.points[0])}</span>${bar(m.points[0], m.points[1])}<span class="v">${n(m.points[1])}</span></div></div>`;
+  }
+  html += `<div class="histnote">Results from Jolpica (the old Ergast). Grand Prix only; sprints aren't counted in the career numbers.</div>`;
+  hb.innerHTML = html;
+}
+async function openCircuit() {
+  const me = ++histToken;
+  hm.classList.add("open"); hm.querySelector(".sheet").style.setProperty("--tone", "var(--accent)");
+  document.getElementById("histtitle").textContent = "The track"; document.getElementById("histsub").textContent = "";
+  hb.innerHTML = `<div class="loading">Looking up the history of this race…</div>`;
+  let d;
+  try { d = await (await fetch("/history/circuit")).json(); } catch (e) { d = {error: "Couldn't reach the dashboard program"}; }
+  if (me !== histToken) return;
+  if (d.error) { hb.innerHTML = `<div class="loading">${esc(d.error)}</div>`; return; }
+  document.getElementById("histsub").textContent = d.place;
+  const followed = new Set(); (lastState && lastState.rows || []).forEach(r => { if (r.watchers.length) followed.add(r.tla); });
+  const top = d.mostWins[0], topT = d.mostTeams[0];
+  let html = `<div class="hhero"><div><h3>${esc(d.name)}</h3><div class="sub">${esc(d.race)} · first held here ${esc(d.first)}</div></div></div>`;
+  html += `<div class="tiles">${tile(d.count, "Races here")}${top ? tile(top[1], "Wins: " + top[0], true) : ""}${topT ? tile(topT[1], "Wins: " + topT[0]) : ""}
+    ${tile(d.fromPole + "/" + d.count, "Won from P1 on the grid")}${d.deepest && (d.deepest.grid === 0 || d.deepest.grid > 1) ? tile(d.deepest.grid === 0 ? "Pit lane" : "P" + d.deepest.grid, "Furthest back to win (" + d.deepest.driver + " " + d.deepest.year + ")") : ""}</div>`;
+  html += `<div class="hsec"><h4>Every winner here</h4><table class="wtable"><thead><tr><th>Year</th><th>Winner</th><th>Team</th><th>Started</th><th>Pole</th></tr></thead><tbody>` +
+    d.winners.map(w => `<tr class="${followed.has(w.code) ? "mine" : ""}"><td class="y">${esc(w.year)}</td><td>${esc(w.driver)}</td><td>${esc(w.team)}</td>
+      <td>${w.grid === 0 ? "Pit lane" : "P" + esc(w.grid ?? "")}</td><td>${esc(w.pole || "")}</td></tr>`).join("") + `</tbody></table></div>`;
+  html += `<div class="histnote">Results from Jolpica (the old Ergast). Highlighted rows are drivers someone here follows.</div>`;
+  hb.innerHTML = html;
+}
+document.getElementById("rows").addEventListener("click", ev => {
+  const tr = ev.target.closest("tr[data-tla]");
+  if (tr && tr.dataset.tla) openDriver(tr.dataset.tla, tr.dataset.col);
+});
+document.getElementById("gp").title = "Click for the history of this race";
+document.getElementById("gp").addEventListener("click", openCircuit);
 document.getElementById("wxclose").onclick = closeWeather;
 document.getElementById("wxmodal").onclick = e => { if (e.target.id === "wxmodal") closeWeather(); };
 document.addEventListener("keydown", e => {

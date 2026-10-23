@@ -142,6 +142,18 @@ each driver is earning in green, and the team table alongside.
 Standings come from the free Jolpica results service. If it can't be reached, the tab just
 says so and everything else carries on.
 
+## Driver and track history
+
+Click any driver in the timing table for their record: career races, wins, podiums,
+poles and titles, this season race by race, how they've done at this track every
+year, and how they stack up against their teammate. Click the race name at the top
+for the history of the race: every winner here, where they started, who was on pole,
+and who has won here most.
+
+It comes from Jolpica (the free replacement for the old Ergast service). The first
+look at each driver takes a few seconds; after that it's saved in the history_cache
+folder, so it opens straight away.
+
 ## Predictions game
 
 Click Predictions at the top before a race or sprint. You and Ed each pick a podium. It locks

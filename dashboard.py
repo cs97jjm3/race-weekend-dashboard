@@ -30,6 +30,7 @@ from radio import Radio
 from race import Race
 from standings import Standings
 import share
+import history
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO)
@@ -75,7 +76,7 @@ def debrief(race, preds):
               "no dashes as punctuation. Use ONLY the facts below and don't invent anything.\n\n"
               "Final order:\n%s\n\nWhat happened, in order:\n%s%s"
               % (name, who_follows(race), "\n".join(lines), "\n".join(story), game))
-    text = ask_claude(prompt, max_tokens=500)
+    text = ask_claude(prompt, max_tokens=2000)
     with race.lock:
         race.emit(text, title="RACE DEBRIEF", kind="debrief", send=False)
     return text
@@ -118,7 +119,7 @@ def make_handler(race, radio, preds, gate):
                       % (people, race.ask_context()))
             try:
                 from notify import ask_claude
-                reply = ask_claude(prompt, max_tokens=400)
+                reply = ask_claude(prompt, max_tokens=1500)
             except Exception as e:
                 return failed(e)
             with race.lock:
@@ -131,7 +132,7 @@ def make_handler(race, radio, preds, gate):
                   "that aren't in the data.\n\n%s" % (people, race.ask_context()))
         try:
             from notify import ask_claude
-            reply = ask_claude(prompt, max_tokens=400)
+            reply = ask_claude(prompt, max_tokens=1500)
         except Exception as e:
             return failed(e)
         with race.lock:
@@ -233,6 +234,19 @@ def make_handler(race, radio, preds, gate):
                     data = None
                 body = json.dumps(data).encode("utf-8")
                 ctype = "application/json"
+            elif self.path.startswith("/history/"):
+                q = urllib.parse.urlparse(self.path)
+                args = urllib.parse.parse_qs(q.query)
+                day = race.session().get("StartDate") or time.strftime("%Y-%m-%d")
+                try:
+                    if q.path == "/history/driver":
+                        data = history.driver(re.sub(r"[^A-Za-z]", "", (args.get("code") or [""])[0])[:3], day)
+                    else:
+                        data = history.circuit(day)
+                except Exception as e:
+                    log.info("History lookup problem: %s", e)
+                    data = {"error": "Couldn't get that from Jolpica just now (%s)" % e}
+                return self._json(data)
             elif self.path.startswith("/radio?p="):
                 audio, why = radio.fetch(urllib.parse.unquote(self.path[len("/radio?p="):]))
                 if audio is None:
