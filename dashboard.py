@@ -245,6 +245,8 @@ def make_handler(race, radio, preds, gate):
                         data = history.driver(re.sub(r"[^A-Za-z]", "", (args.get("code") or [""])[0])[:3], day)
                     else:
                         data = history.circuit(day)
+                except history.TooBusy as e:
+                    data = {"error": str(e)}
                 except Exception as e:
                     log.info("History lookup problem: %s", e)
                     data = {"error": "Couldn't get that from Jolpica just now (%s)" % e}

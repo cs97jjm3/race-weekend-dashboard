@@ -23,6 +23,24 @@ _gap_lock = threading.Lock()
 _last_call = [0.0]
 
 
+_resting = [0.0]
+
+
+class TooBusy(Exception):
+    def __str__(self):
+        mins = max(1, int((_resting[0] - time.time()) // 60) + 1)
+        return ("Jolpica (the free results service) has had enough lookups from us for now. "
+                "Anything already looked up still works; try new ones again in about %d minutes." % mins)
+
+
+def _stale(fn):
+    try:
+        with open(fn, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
 def _get(path, ttl, **params):
     """One Jolpica call, from the cache if it's fresh enough."""
     params.setdefault("limit", 100)
@@ -35,8 +53,13 @@ def _get(path, ttl, **params):
                 return json.load(f)
     except OSError:
         pass
-    with _gap_lock:                      # no more than about three calls a second
-        wait = 0.35 - (time.time() - _last_call[0])
+    if time.time() < _resting[0]:
+        stale = _stale(fn)
+        if stale is not None:
+            return stale
+        raise TooBusy()
+    with _gap_lock:                      # no more than about two calls a second
+        wait = 0.6 - (time.time() - _last_call[0])
         if wait > 0:
             time.sleep(wait)
         _last_call[0] = time.time()
@@ -44,14 +67,51 @@ def _get(path, ttl, **params):
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
             data = json.loads(r.read().decode("utf-8"))
-    except Exception:
-        if os.path.exists(fn):           # out of date is better than nothing
-            with open(fn, encoding="utf-8") as f:
-                return json.load(f)
+    except Exception as e:
+        if getattr(e, "code", None) == 429:
+            # Jolpica allows a few hundred lookups an hour; if we've hit that, leave it alone for a bit
+            try:
+                rest = int(e.headers.get("Retry-After") or 0)
+            except (TypeError, ValueError, AttributeError):
+                rest = 0
+            _resting[0] = time.time() + max(rest, 600)
+            log.info("Jolpica says we've asked too much; resting it for %d minutes", max(rest, 600) // 60)
+        stale = _stale(fn)               # out of date is better than nothing
+        if stale is not None:
+            return stale
+        if getattr(e, "code", None) == 429:
+            raise TooBusy()
         raise
     with open(fn, "w", encoding="utf-8") as f:
         json.dump(data, f)
     return data
+
+# World champions by year (Jolpica driver ids). Past titles never change, so they're kept
+# here rather than asking Jolpica one season at a time. Later years are looked up if missing.
+CHAMPIONS = {
+    1950: "farina", 1951: "fangio", 1952: "ascari", 1953: "ascari", 1954: "fangio", 1955: "fangio",
+    1956: "fangio", 1957: "fangio", 1958: "hawthorn", 1959: "brabham", 1960: "brabham", 1961: "phil_hill",
+    1962: "hill", 1963: "clark", 1964: "surtees", 1965: "clark", 1966: "brabham", 1967: "hulme", 1968: "hill",
+    1969: "stewart", 1970: "rindt", 1971: "stewart", 1972: "emerson_fittipaldi", 1973: "stewart",
+    1974: "emerson_fittipaldi", 1975: "lauda", 1976: "hunt", 1977: "lauda", 1978: "mario_andretti",
+    1979: "scheckter", 1980: "jones", 1981: "piquet", 1982: "keke_rosberg", 1983: "piquet", 1984: "lauda",
+    1985: "prost", 1986: "prost", 1987: "piquet", 1988: "senna", 1989: "prost", 1990: "senna", 1991: "senna",
+    1992: "mansell", 1993: "prost", 1994: "michael_schumacher", 1995: "michael_schumacher", 1996: "damon_hill",
+    1997: "villeneuve", 1998: "hakkinen", 1999: "hakkinen", 2000: "michael_schumacher",
+    2001: "michael_schumacher", 2002: "michael_schumacher", 2003: "michael_schumacher",
+    2004: "michael_schumacher", 2005: "alonso", 2006: "alonso", 2007: "raikkonen", 2008: "hamilton",
+    2009: "button", 2010: "vettel", 2011: "vettel", 2012: "vettel", 2013: "vettel", 2014: "hamilton",
+    2015: "hamilton", 2016: "rosberg", 2017: "hamilton", 2018: "hamilton", 2019: "hamilton", 2020: "hamilton",
+    2021: "max_verstappen", 2022: "max_verstappen", 2023: "max_verstappen", 2024: "max_verstappen",
+    2025: "norris",
+}
+
+
+def _champion(year):
+    if year in CHAMPIONS:
+        return CHAMPIONS[year]
+    lists = _get("%d/driverStandings/1.json" % year, 365 * 24 * HOUR)["MRData"]["StandingsTable"]["StandingsLists"]
+    return lists[0]["DriverStandings"][0]["Driver"]["driverId"] if lists else None
 
 
 def _all_races(path, ttl):
@@ -134,26 +194,18 @@ def driver(code, session_date=None):
         "podiums": sum(_total(p + "results/%d.json" % n, 12 * HOUR) for n in (1, 2, 3)),
         "poles": _total(p + "qualifying/1.json", 12 * HOUR),
     }
-    # Jolpica only gives standings season by season, so count titles one past season at a
-    # time. Finished seasons never change, so those are kept for a year.
     try:
         seasons = [x["season"] for x in _get(p + "seasons.json", 24 * HOUR)["MRData"]["SeasonTable"]["Seasons"]]
         career["firstYear"] = seasons[0] if seasons else ""
-        titles = 0
-        for y in seasons:
-            if int(y) >= int(time.strftime("%Y")):
-                continue
-            lists = _get("%s/drivers/%s/driverStandings.json" % (y, did), 365 * 24 * HOUR)["MRData"]["StandingsTable"]["StandingsLists"]
-            if lists and str(lists[0]["DriverStandings"][0].get("position")) == "1":
-                titles += 1
-        career["titles"] = titles
+        this_year = int(time.strftime("%Y"))
+        career["titles"] = sum(1 for y in seasons if int(y) < this_year and _champion(int(y)) == did)
     except Exception as e:
         log.info("Couldn't count titles for %s (%s)", did, e)
         career["titles"] = "?"
 
     # this season, race by race
     season, team = [], None
-    for r in _all_races("current/drivers/%s/results.json" % did, HOUR):
+    for r in _all_races("current/drivers/%s/results.json" % did, 6 * HOUR):
         res = (r.get("Results") or [{}])[0]
         team = res.get("Constructor") or team
         season.append({"round": _num(r["round"]), "year": r["season"], "race": r["raceName"].replace(" Grand Prix", ""),
@@ -181,7 +233,7 @@ def driver(code, session_date=None):
         tid = team["constructorId"]
         ahead = {"race": [0, 0], "quali": [0, 0], "points": [0.0, 0.0]}
         mate_name = None
-        for r in _all_races("current/constructors/%s/results.json" % tid, HOUR):
+        for r in _all_races("current/constructors/%s/results.json" % tid, 6 * HOUR):
             rows = {x["Driver"]["driverId"]: x for x in r.get("Results", [])}
             if did not in rows or len(rows) < 2:
                 continue
@@ -192,7 +244,7 @@ def driver(code, session_date=None):
             ahead["points"][1] += float(b.get("points") or 0)
             pa, pb = _num(a.get("position"), 99), _num(b.get("position"), 99)
             ahead["race"][0 if pa < pb else 1] += 1
-        for r in _all_races("current/constructors/%s/qualifying.json" % tid, HOUR):
+        for r in _all_races("current/constructors/%s/qualifying.json" % tid, 6 * HOUR):
             rows = {x["Driver"]["driverId"]: _num(x.get("position"), 99) for x in r.get("QualifyingResults", [])}
             if did in rows and len(rows) >= 2:
                 other = min((v for k, v in rows.items() if k != did), default=99)
