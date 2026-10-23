@@ -21,13 +21,6 @@ import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-if not os.path.exists(os.path.join(HERE, "config.py")):
-    # first run: make your own settings file from the template (it's kept out of git)
-    import shutil
-    shutil.copyfile(os.path.join(HERE, "config.example.py"), os.path.join(HERE, "config.py"))
-    print("Made config.py from config.example.py. Open it in Notepad to set who follows which drivers.")
-
 import config
 import track
 from feed import ArchiveLocked, LiveFeed, Recorder, ReplayFeed, find_session
@@ -89,6 +82,14 @@ def debrief(race, preds):
 
 
 def make_handler(race, radio, preds, gate):
+    def failed(e):
+        """Claude didn't answer: say so in the cmd window and in the feed, not just on the button."""
+        log.warning("'What's happening?' failed: %s", e)
+        with race.lock:
+            race.emit("Claude didn't answer this time (%s). Try again in a minute." % e,
+                      title="AI", kind="info", send=False)
+        return {"error": "Claude didn't answer"}
+
     def ask_now():
         """The 'What's happening?' button: a short read of the race from Claude.
         After the chequered flag it writes the race debrief instead."""
@@ -119,7 +120,7 @@ def make_handler(race, radio, preds, gate):
                 from notify import ask_claude
                 reply = ask_claude(prompt, max_tokens=160)
             except Exception as e:
-                return {"error": "Claude didn't answer: %s" % e}
+                return failed(e)
             with race.lock:
                 race.emit(reply, title="QUALI READ", kind="ai", send=False)
             return {"ok": True}
@@ -132,10 +133,9 @@ def make_handler(race, radio, preds, gate):
             from notify import ask_claude
             reply = ask_claude(prompt, max_tokens=160)
         except Exception as e:
-            log.warning("AI read failed: %s", e)
-            return {"error": "Claude didn't answer: %s" % e}
+            return failed(e)
         with race.lock:
-            race.emit(reply, title="RACE READ", kind="ai", send=False)
+            race.emit(reply, title="RACE READ" if race.is_race() else "SESSION READ", kind="ai", send=False)
         return {"ok": True}
 
 
@@ -353,8 +353,25 @@ def main():
                 if full and r["watchers"]:
                     bits.append("followed by " + " and ".join(r["watchers"]))
                 lines.append(", ".join(bits))
-        else:
+        elif race.is_race():
             text = "%s %s. Lap %s of %s. Track: %s." % (v["meeting"], v["session"], v["lap"], v["total"], v["trackText"])
+        else:
+            # practice: no race order, so give each car's best lap and how far off the top it is
+            text = "%s %s (a practice session, so times matter more than positions). Track: %s." % (
+                v["meeting"], v["session"], v["trackText"])
+            lines = []
+            for r in rows:
+                bits = ["P%d %s (%s)" % (r["pos"], r["name"], r["team"]),
+                        "best %s" % (r.get("best") or "no time yet")]
+                if r["gap"]:
+                    bits.append("%s off the top" % r["gap"])
+                if r["tyre"]:
+                    bits.append("%s tyres %s laps old" % (r["tyre"].lower(), r["tyreAge"]))
+                if r["inPit"]:
+                    bits.append("in the garage")
+                if full and r["watchers"]:
+                    bits.append("followed by " + " and ".join(r["watchers"]))
+                lines.append(", ".join(bits))
         if v.get("air"):
             text += " Air %s C, track %s C, %s." % (v["air"], v["trackTemp"], "raining" if v.get("rain") not in (None, "0") else "dry")
         text += "\n" + "\n".join(lines)

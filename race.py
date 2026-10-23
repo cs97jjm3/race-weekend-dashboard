@@ -117,7 +117,8 @@ class Race:
     # ----- helpers -----
 
     def drivers(self):
-        return self.raw.get("DriverList") or {}
+        # the live feed slips a marker ("_kf": true) in among the drivers, so keep only real driver entries
+        return {k: v for k, v in (self.raw.get("DriverList") or {}).items() if isinstance(v, dict)}
 
     def name(self, num):
         d = self.drivers().get(str(num)) or {}
@@ -136,7 +137,7 @@ class Race:
         return tuple(out)
 
     def lines(self):
-        return (self.raw.get("TimingData") or {}).get("Lines") or {}
+        return {k: v for k, v in ((self.raw.get("TimingData") or {}).get("Lines") or {}).items() if isinstance(v, dict)}
 
     def session(self):
         return self.raw.get("SessionInfo") or {}

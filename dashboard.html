@@ -783,7 +783,7 @@ document.getElementById("aiask").onclick = async () => {
   try { const r = await (await fetch("/ai/ask", {method: "POST"})).json(); msg = r.error || ""; }
   catch (e) { msg = "Couldn't reach the dashboard program"; }
   asking = false; b.disabled = false; b.textContent = msg ? msg : "What's happening?";
-  if (msg) setTimeout(() => { b.textContent = "What's happening?"; }, 4000);
+  if (msg) setTimeout(() => { b.textContent = "What's happening?"; }, 8000);
   refresh();
 };
 

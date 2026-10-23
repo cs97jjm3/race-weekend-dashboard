@@ -109,7 +109,6 @@ class LiveFeed:
             headers["Cookie"] = "AWSALBCORS=" + r.cookies["AWSALBCORS"]
         self.conn = (HubConnectionBuilder()
                      .with_url(self.url, options={"verify_ssl": True,
-                                                  "access_token_factory": None,
                                                   "headers": headers})
                      .build())
         opened = []

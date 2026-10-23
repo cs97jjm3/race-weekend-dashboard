@@ -15,7 +15,7 @@ TAGS = {"sc": "rotating_light", "red": "red_circle", "pit": "wrench", "lead": "t
         "rc": "warning"}
 
 
-def ask_claude(prompt, max_tokens=80):
+def ask_claude(prompt, max_tokens=80, timeout=30):
     """One question to Claude, one short answer back. Raises with a readable reason if it fails."""
     body = json.dumps({"model": config.AI_MODEL, "max_tokens": max_tokens,
                        "messages": [{"role": "user", "content": prompt}]}).encode()
@@ -23,7 +23,7 @@ def ask_claude(prompt, max_tokens=80):
         "x-api-key": config.ANTHROPIC_API_KEY.strip(), "anthropic-version": "2023-06-01",
         "content-type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=10) as r:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
             out = json.loads(r.read())
     except urllib.error.HTTPError as e:
         try:
@@ -77,6 +77,6 @@ class Notifier:
                     "Tags": TAGS.get(event["kind"], "racing_car"),
                     "Priority": "high" if loud else "default"})
                 try:
-                    urllib.request.urlopen(req, timeout=10).read()
+                    urllib.request.urlopen(req, timeout=timeout).read()
                 except Exception as e:
                     log.warning("Couldn't send alert to %s: %s", person, e)
