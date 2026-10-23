@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ed's Race Weekend Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --accent: #c8f031; --bg: #0b0d10; --panel: #11151a; --line: #222932; --ink: #e9edf2; --dim: #8893a0;
@@ -53,8 +53,8 @@
   .ev.radio { border-color: #c084fc; }
   .play { margin-top: 6px; background: none; border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 15px; padding: 2px 12px; border-radius: 4px; cursor: pointer; }
   .play.locked { color: var(--dim); cursor: default; }
-  .ev .transcript { font-size: 19px; margin-top: 4px; color: #e4d4ff; font-style: italic; }
-  .ev.ai .text { font-size: 20px; }
+  .ev .transcript { font-size: 17px; margin-top: 4px; color: #e4d4ff; font-style: italic; }
+  .ev.ai .text { font-size: 18px; }
   .key { margin-left: auto; color: var(--dim); font-size: 16px; display: flex; gap: 14px; align-items: center; }
   .key span { display: inline-flex; align-items: center; gap: 6px; }
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
@@ -139,8 +139,9 @@
   .chance small { color: var(--dim); font-size: 14px; }
   .credit { color: var(--dim); font-size: 13px; margin-top: 20px; line-height: 1.4; }
   @media (max-width: 900px) { .sheetbody { grid-template-columns: 1fr; grid-template-rows: 340px auto; } .wxside { border-left: 0; } .modal { padding: 0; } .sheet { height: 100%; border-radius: 0; } }
-  .ev .text { font-size: 21px; line-height: 1.25; margin-top: 3px; }
-  .ev .ai { font-size: 17px; color: var(--dim); margin-top: 5px; font-style: italic; }
+  .ev .text { font-family: "Barlow", system-ui, sans-serif; font-weight: 500; font-size: 18px; line-height: 1.4; margin-top: 4px; }
+  .ev .ai, .ev .transcript { font-family: "Barlow", system-ui, sans-serif; }
+  .ev .ai { font-size: 16px; color: var(--dim); margin-top: 5px; font-style: italic; }
   .ev.sc, .ev.battle { border-color: var(--yellow); } .ev.red, .ev.out { border-color: var(--red); }
   .ev.pit { border-color: var(--blue); } .ev.fast { border-color: var(--purple); }
   .ev.up, .ev.green, .ev.start { border-color: var(--green); } .ev.lead, .ev.finish { border-color: var(--accent); }
@@ -164,6 +165,14 @@
   .secs { display: inline-flex; gap: 3px; vertical-align: middle; }
   .secs i { width: 16px; height: 9px; border-radius: 2px; background: #252c35; display: inline-block; }
   .secs i.yellow { background: #c9a227; } .secs i.green { background: var(--green); } .secs i.purple { background: var(--purple); }
+  .sectimes { display: none; gap: 6px; font-family: "JetBrains Mono", monospace; font-size: 13px; vertical-align: middle; }
+  .sectimes b { font-weight: 500; min-width: 44px; text-align: right; color: #4a5562; }
+  .sectimes b.yellow { color: #e0c04a; } .sectimes b.green { color: var(--green); } .sectimes b.purple { color: var(--purple); font-weight: 700; }
+  body.showsectimes .secs { display: none; } body.showsectimes .sectimes { display: inline-flex; }
+  body.showsectimes .team { display: none; }
+  #sechead { background: none; border: 1px solid #2c3540; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit;
+             padding: 0 6px; border-radius: 4px; cursor: pointer; }
+  #sechead:hover { border-color: var(--accent); }
   tr.zone td { background: rgba(232, 0, 45, .10); }
   tr.ko td { color: var(--dim); }
   tr.ko .tla { color: var(--dim); }
@@ -216,7 +225,7 @@
 
   /* debrief */
   .ev.debrief { border-color: var(--accent); background: #161b12; }
-  .ev.debrief .text { white-space: pre-wrap; font-size: 19px; line-height: 1.35; }
+  .ev.debrief .text { white-space: pre-wrap; font-size: 18px; line-height: 1.45; }
   .copy { margin-top: 8px; background: none; border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 15px; padding: 2px 12px; border-radius: 4px; cursor: pointer; }
 
   /* telly mode */
@@ -315,7 +324,7 @@
   <section id="tower">
     <div class="scroll">
       <table>
-        <thead><tr><th></th><th>Driver</th><th id="h3">Gap</th><th id="h4">Int</th><th id="h5">Last lap</th><th>Sectors</th><th>Tyre</th><th></th></tr></thead>
+        <thead><tr><th></th><th>Driver</th><th id="h3">Gap</th><th id="h4">Int</th><th id="h5">Last lap</th><th><button id="sechead" title="Switch between coloured bars and the actual sector times">Sectors</button></th><th>Tyre</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
       <div class="empty" id="empty">Waiting for timing data. During a session this fills in within a few seconds.</div>
@@ -681,7 +690,8 @@ function render(s) {
     const zone = q && q.cutAfter && !r.knockedOut && r.pos > q.cutAfter && r.pos < 99;
     const cls = [mine ? "watched" : (filter !== "Everyone" ? "dimmed" : ""), r.out ? "out" : "",
                  zone ? "zone" : "", r.knockedOut ? "ko" : ""].join(" ");
-    const secs = `<span class="secs">${(r.sectors || []).map(x => `<i class="${esc(x.c)}" title="${esc(x.v)}"></i>`).join("")}</span>`;
+    const secs = `<span class="secs">${(r.sectors || []).map(x => `<i class="${esc(x.c)}" title="${esc(x.v)}"></i>`).join("")}</span>`
+      + `<span class="sectimes">${(r.sectors || []).map(x => `<b class="${esc(x.c)}">${esc(x.v || "–")}</b>`).join("")}</span>`;
     const cutline = q && q.cutAfter && r.pos === q.cutAfter && !r.knockedOut
       ? `<tr class="cutline"><td colspan="8"><div><span>DROP ZONE</span></div></td></tr>` : "";
     const tyre = r.tyre ? `<span class="tyre ${esc(r.tyre)}">${esc(r.tyre[0])}</span><span class="age">${r.tyreAge ?? ""}</span>` : "";
@@ -790,6 +800,18 @@ document.getElementById("aiask").onclick = async () => {
 
 // ---------- middle panel tabs ----------
 let tab = "map";
+// Sectors header: switch between coloured bars and the actual times
+let secTimes = false;
+try { secTimes = localStorage.getItem("rwd-sectimes") === "on"; } catch (e) {}
+function applySecTimes() {
+  document.body.classList.toggle("showsectimes", secTimes);
+  document.getElementById("sechead").textContent = secTimes ? "Sector times" : "Sectors";
+}
+document.getElementById("sechead").onclick = () => {
+  secTimes = !secTimes; applySecTimes();
+  try { localStorage.setItem("rwd-sectimes", secTimes ? "on" : "off"); } catch (e) {}
+};
+applySecTimes();
 try { tab = localStorage.getItem("rwd-tab") || "map"; } catch (e) {}
 function setTab(t) {
   tab = t;
