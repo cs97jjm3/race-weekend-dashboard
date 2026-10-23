@@ -118,7 +118,7 @@ def make_handler(race, radio, preds, gate):
                       % (people, race.ask_context()))
             try:
                 from notify import ask_claude
-                reply = ask_claude(prompt, max_tokens=160)
+                reply = ask_claude(prompt, max_tokens=400)
             except Exception as e:
                 return failed(e)
             with race.lock:
@@ -131,7 +131,7 @@ def make_handler(race, radio, preds, gate):
                   "that aren't in the data.\n\n%s" % (people, race.ask_context()))
         try:
             from notify import ask_claude
-            reply = ask_claude(prompt, max_tokens=160)
+            reply = ask_claude(prompt, max_tokens=400)
         except Exception as e:
             return failed(e)
         with race.lock:
@@ -445,7 +445,10 @@ def main():
             log.info("  SHARING IS ON. Send Dad these two things:")
             log.info("    Link:      %s", link)
             log.info("    Passcode:  %s", code)
-            log.info("  Both change each time you start with --share.")
+            if getattr(config, "SHARE_HOSTNAME", ""):
+                log.info("  The link stays the same every time; the passcode changes unless you pick one.")
+            else:
+                log.info("  Both change each time you start with --share.")
             log.info("=" * 64)
             log.info("")
         share.start_tunnel(config.WEB_PORT, gate, announce)

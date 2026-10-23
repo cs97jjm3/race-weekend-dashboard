@@ -93,6 +93,25 @@ switch the AI comments off, and they don't see the link or code themselves. Clou
 quick tunnels are meant for testing and come with no uptime guarantee; if the tunnel drops,
 the dashboard starts a new one, which means a new link to send.
 
+### Your own web address (optional)
+
+If you have a domain on Cloudflare, the link can be the same every race (for example `race.example.co.uk`) instead of a new trycloudflare.com one. Set it up once in a command window:
+
+```
+cloudflared tunnel login
+cloudflared tunnel create race-dashboard
+cloudflared tunnel route dns race-dashboard race.example.co.uk
+```
+
+The first command opens a browser: log in to Cloudflare and pick your domain. Then put the address in config.py:
+
+```
+SHARE_HOSTNAME = "race.example.co.uk"
+SHARE_TUNNEL = "race-dashboard"
+```
+
+From then on `py dashboard.py --share` uses that address. The passcode still changes each time, unless you give one, e.g. `py dashboard.py --share 271024`.
+
 ## Qualifying
 
 In qualifying the timing tower shows each driver's best time in the current part, the gap to

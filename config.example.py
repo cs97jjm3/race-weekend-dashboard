@@ -26,6 +26,13 @@ PEOPLE = {
 # Web page port on the laptop: open http://localhost:8080
 WEB_PORT = 8080
 
+# Sharing with your own web address (optional). Leave blank to get a free
+# throwaway trycloudflare.com link each time instead.
+# Set up once with cloudflared (see "Your own web address" in the README), then e.g.:
+#   SHARE_HOSTNAME = "race.example.co.uk"
+SHARE_HOSTNAME = ""
+SHARE_TUNNEL = "race-dashboard"
+
 # Roughly how many seconds a pit stop costs at each track, used to guess
 # where a driver will rejoin. These are approximate; tweak them if the
 # guesses come out consistently early or late.

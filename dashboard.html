@@ -59,7 +59,8 @@
   .key span { display: inline-flex; align-items: center; gap: 6px; }
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 
-  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(520px, 600px) minmax(360px, 1fr) minmax(420px, 540px); }
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(600px, 1.3fr) minmax(320px, 1fr) minmax(400px, 1fr); }
+  #tower { container-type: inline-size; }
   section { min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
   section:last-child { border-right: 0; }
   .head { color: var(--dim); font-size: 15px; text-transform: uppercase; letter-spacing: 1.5px; padding: 10px 16px 8px; display: flex; justify-content: space-between; gap: 14px; min-width: 0; }
@@ -146,6 +147,9 @@
   .ev.pit { border-color: var(--blue); } .ev.fast { border-color: var(--purple); }
   .ev.up, .ev.green, .ev.start { border-color: var(--green); } .ev.lead, .ev.finish { border-color: var(--accent); }
   .ev.down { border-color: #b0545e; } .ev.yellow { border-color: var(--yellow); } .ev.rc { border-color: #ff8a3d; }
+  .ev.stewards { border-color: #f5f5f5; background: #171a1e; }
+  .pen { margin-left: 6px; font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 600; color: #0b0d10;
+         background: #f5f5f5; border-radius: 3px; padding: 0 4px; vertical-align: middle; }
   .ev.new { animation: arrive 1.2s ease-out; }
   @keyframes arrive { from { background: #26301a; } }
   .status { color: var(--dim); font-size: 14px; padding: 8px 16px; }
@@ -161,6 +165,21 @@
   .sharing button { background: none; border: 1px solid #2c3540; color: var(--ink); font: inherit; font-size: 13px; padding: 1px 8px; border-radius: 4px; cursor: pointer; }
   body.away #aitoggle { display: none; }
 
+  /* send-the-link window */
+  #sendmodal .sheet { width: min(560px, 100%); height: auto; }
+  .sendbody { padding: 18px 20px 22px; }
+  .sendbody p { margin: 0 0 10px; color: var(--dim); font-size: 17px; }
+  .sendbody textarea { width: 100%; box-sizing: border-box; height: 112px; resize: vertical; background: #0e1216; color: var(--ink);
+                       border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font: 500 17px/1.4 "Barlow", system-ui, sans-serif; }
+  .sendgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+  .sendgrid a, .sendgrid button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 6px 12px; border-radius: 8px;
+       border: 1px solid var(--line); background: #11161b; color: var(--ink); font: 600 17px "Barlow Condensed", sans-serif; letter-spacing: .5px;
+       text-decoration: none; cursor: pointer; }
+  .sendgrid a:hover, .sendgrid button:hover { border-color: var(--accent); }
+  .sendgrid .ico { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .sendgrid svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .sendnote { margin-top: 14px; color: var(--dim); font-size: 15px; }
+  @media (max-width: 900px) { #sendmodal .sheet { height: auto; } }
   /* sectors and qualifying */
   .secs { display: inline-flex; gap: 3px; vertical-align: middle; }
   .secs i { width: 16px; height: 9px; border-radius: 2px; background: #252c35; display: inline-block; }
@@ -169,7 +188,7 @@
   .sectimes b { font-weight: 500; min-width: 44px; text-align: right; color: #4a5562; }
   .sectimes b.yellow { color: #e0c04a; } .sectimes b.green { color: var(--green); } .sectimes b.purple { color: var(--purple); font-weight: 700; }
   body.showsectimes .secs { display: none; } body.showsectimes .sectimes { display: inline-flex; }
-  body.showsectimes .team { display: none; }
+  @container (max-width: 720px) { body.showsectimes .team { display: none; } }
   #sechead { background: none; border: 1px solid #2c3540; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit;
              padding: 0 6px; border-radius: 4px; cursor: pointer; }
   #sechead:hover { border-color: var(--accent); }
@@ -239,7 +258,7 @@
   body.tv .team { display: none; }
 
   @media (max-width: 1500px) {
-    main { grid-template-columns: minmax(480px, 560px) 1fr; grid-template-rows: 1.15fr 1fr; }
+    main { grid-template-columns: minmax(520px, 1.2fr) 1fr; grid-template-rows: 1.15fr 1fr; }
     #tower { grid-row: 1 / span 2; }
     #mapsec { border-right: 0; border-bottom: 1px solid var(--line); }
     .team { display: none; }
@@ -295,6 +314,24 @@
   <span class="show hidden" id="aictl"><span class="lbl">AI</span>
     <button id="aitoggle" class="on">Comments</button><button id="aiask" class="ask">What's happening?</button></span>
   <div class="key" id="key"></div></div>
+<div class="modal" id="sendmodal" role="dialog" aria-modal="true" aria-labelledby="sendtitle">
+  <div class="sheet">
+    <header><h2 id="sendtitle">Send the link</h2><button id="sendclose">Close ✕</button></header>
+    <div class="sendbody">
+      <p>This is what they'll get. You can change the wording first.</p>
+      <textarea id="sendmsg" aria-label="Message to send"></textarea>
+      <div class="sendgrid">
+        <a id="s-wa" target="_blank" rel="noopener"><span class="ico" style="background:#1f9d55"><svg viewBox="0 0 24 24"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg></span>WhatsApp</a>
+        <a id="s-gm" target="_blank" rel="noopener"><span class="ico" style="background:#c5362b"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>Gmail</a>
+        <a id="s-fb" target="_blank" rel="noopener"><span class="ico" style="background:#2d6cdf"><svg viewBox="0 0 24 24"><path d="M12 3C7 3 3 6.7 3 11.3c0 2.6 1.3 4.9 3.4 6.4V21l3.1-1.7c.8.2 1.6.3 2.5.3 5 0 9-3.7 9-8.3S17 3 12 3z"/><path d="M7.5 13l3-3 2.5 2.5 3.5-3.5"/></svg></span>Messenger</a>
+        <a id="s-em"><span class="ico" style="background:#5b6673"><svg viewBox="0 0 24 24"><path d="M22 6l-10 7L2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg></span>Other email</a>
+        <a id="s-sms"><span class="ico" style="background:#5b6673"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg></span>Text message</a>
+        <button id="s-copy"><span class="ico" style="background:#5b6673"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a2 2 0 0 1 2-2h11"/></svg></span><span id="s-copytxt">Copy</span></button>
+      </div>
+      <div class="sendnote" id="sendnote">Send it as a private message, not a public post. Anyone with the link and code can watch.</div>
+    </div>
+  </div>
+</div>
 <div class="modal" id="wxmodal" role="dialog" aria-modal="true" aria-labelledby="wxtitle">
   <div class="sheet">
     <header><h2 id="wxtitle">Weather</h2><span class="sub" id="wxsub"></span><button id="wxclose">Close ✕</button></header>
@@ -644,13 +681,10 @@ function render(s) {
     if (sh.dataset.txt !== txt) {
       sh.dataset.txt = txt;
       sh.innerHTML = s.share.link
-        ? `Sharing <b>${esc(s.share.link.replace("https://", ""))}</b> code <b>${esc(s.share.passcode)}</b> <button id="sharecopy">Copy for Dad</button>`
+        ? `Sharing <b>${esc(s.share.link.replace("https://", ""))}</b> code <b>${esc(s.share.passcode)}</b> <button id="sharecopy">Send link</button>`
         : `Sharing: starting the link…`;
       const b = document.getElementById("sharecopy");
-      if (b) b.onclick = async () => {
-        const msg = `Race dashboard: ${s.share.link}\nCode: ${s.share.passcode}`;
-        try { await navigator.clipboard.writeText(msg); b.textContent = "Copied"; } catch (e) { b.textContent = "Copy failed"; }
-      };
+      if (b) b.onclick = () => openSend(s.share.link, s.share.passcode);
     }
   } else sh.classList.add("hidden");
   drawWx(s);
@@ -698,7 +732,7 @@ function render(s) {
     return `<tr class="${cls}">
       <td class="pos">${r.out ? "OUT" : (r.pos < 99 ? r.pos : "")}</td>
       <td><div class="drv"><div class="stripe" style="background:${esc(r.colour)}"></div>
-        <span class="tla">${esc(r.tla)}</span><span class="team">${esc(r.team)}</span></div></td>
+        <span class="tla">${esc(r.tla)}</span>${(r.pens || []).map(p => `<span class="pen" title="Penalty">${esc(p)}</span>`).join("")}<span class="team">${esc(r.team)}</span></div></td>
       ${q ? `<td class="num">${esc(r.partBest || "")}</td>
       <td class="num">${r.knockedOut ? `<span style="color:var(--dim)">out in Q${r.pos > (q.entries[1] || 99) ? 1 : 2}</span>` : (r.pos === 1 ? "" : esc(r.gap))}</td>
       <td class="num">${q.cutAfter && r.toCut !== null && r.toCut !== undefined && !r.knockedOut
@@ -1040,7 +1074,7 @@ document.getElementById("soundbtn").onclick = () => {
 drawSoundBtn();
 
 // ---------- show / hide panels ----------
-const WIDTHS = {tower: "minmax(480px, 600px)", mapsec: "minmax(360px, 1fr)", feedsec: "minmax(420px, 540px)"};
+const WIDTHS = {tower: "minmax(600px, 1.3fr)", mapsec: "minmax(320px, 1fr)", feedsec: "minmax(400px, 1fr)"};
 let shown = {tower: true, mapsec: true, feedsec: true};
 try { Object.assign(shown, JSON.parse(localStorage.getItem("rwd-shown") || "{}")); } catch (e) {}
 function layout() {
@@ -1075,6 +1109,44 @@ function animate(t) {
 }
 requestAnimationFrame(animate);
 document.getElementById("wx").onclick = openWeather;
+
+// ----- send the share link -----
+function sendLinks() {
+  const msg = document.getElementById("sendmsg").value;
+  const m = encodeURIComponent(msg);
+  const subj = encodeURIComponent("Watch the race with us");
+  document.getElementById("s-wa").href = "https://wa.me/?text=" + m;
+  document.getElementById("s-gm").href = "https://mail.google.com/mail/?view=cm&fs=1&su=" + subj + "&body=" + m;
+  document.getElementById("s-em").href = "mailto:?subject=" + subj + "&body=" + m;
+  document.getElementById("s-sms").href = "sms:?&body=" + m;
+}
+function openSend(link, code) {
+  document.getElementById("sendmsg").value =
+    `Here's the race dashboard for this weekend: ${link}\nWhen it asks, type in this code: ${code}\nIt works on a phone, tablet or computer.`;
+  sendLinks();
+  const fb = document.getElementById("s-fb");
+  const phone = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (navigator.share && phone) {
+    fb.removeAttribute("href");
+    fb.onclick = async ev => { ev.preventDefault(); try { await navigator.share({text: document.getElementById("sendmsg").value}); } catch (e) {} };
+  } else {
+    // on a laptop Messenger can't be filled in for us, so copy the message and open Messenger to paste it
+    fb.href = "https://www.messenger.com/";
+    fb.onclick = async () => { try { await navigator.clipboard.writeText(document.getElementById("sendmsg").value); } catch (e) {}
+      document.getElementById("sendnote").textContent = "Message copied. Pick who to send it to in Messenger, then paste it in (Ctrl+V)."; };
+  }
+  document.getElementById("s-copytxt").textContent = "Copy";
+  document.getElementById("sendnote").textContent = "Send it as a private message, not a public post. Anyone with the link and code can watch.";
+  document.getElementById("sendmodal").classList.add("open");
+}
+document.getElementById("sendmsg").oninput = sendLinks;
+document.getElementById("s-copy").onclick = async () => {
+  const t = document.getElementById("s-copytxt");
+  try { await navigator.clipboard.writeText(document.getElementById("sendmsg").value); t.textContent = "Copied"; } catch (e) { t.textContent = "Couldn't copy"; }
+};
+document.getElementById("sendclose").onclick = () => document.getElementById("sendmodal").classList.remove("open");
+document.getElementById("sendmodal").onclick = ev => { if (ev.target.id === "sendmodal") ev.target.classList.remove("open"); };
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") document.getElementById("sendmodal").classList.remove("open"); });
 document.getElementById("wxclose").onclick = closeWeather;
 document.getElementById("wxmodal").onclick = e => { if (e.target.id === "wxmodal") closeWeather(); };
 document.addEventListener("keydown", e => {

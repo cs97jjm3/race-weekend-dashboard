@@ -89,19 +89,37 @@ def start_tunnel(port, gate, on_link):
         log.warning("The dashboard is still running for everyone at home.")
         return
 
+    import config
+    host = (getattr(config, "SHARE_HOSTNAME", "") or "").strip().lower()
+    name = (getattr(config, "SHARE_TUNNEL", "") or "race-dashboard").strip()
+    origin = "http://localhost:%d" % port
+    if host:
+        # your own address, e.g. race.jmmcp.uk: the same link every time
+        cmd = [exe, "tunnel", "--no-autoupdate", "run", "--url", origin, name]
+    else:
+        # a free throwaway trycloudflare.com address, new every time
+        cmd = [exe, "tunnel", "--no-autoupdate", "--url", origin]
+
     def run():
         while True:
             try:
-                p = subprocess.Popen([exe, "tunnel", "--no-autoupdate", "--url", "http://localhost:%d" % port],
-                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                                      encoding="utf-8", errors="replace")
                 for line in p.stdout:
+                    if host:
+                        if "Registered tunnel connection" in line and gate.link != "https://" + host:
+                            gate.link = "https://" + host
+                            on_link(gate.link)
+                        elif "origin cert" in line.lower() or ("not found" in line.lower() and "tunnel" in line.lower()):
+                            log.warning("Cloudflare says: %s", line.strip())
+                            log.warning("The '%s' tunnel isn't set up on this laptop yet. See 'Your own web address' in the README.", name)
+                        continue
                     m = re.search(r"https://[a-z0-9-]+\.trycloudflare\.com", line)
                     if m and m.group(0) != gate.link:
                         gate.link = m.group(0)
                         on_link(gate.link)
                 p.wait()
-                log.warning("The sharing tunnel stopped; starting a new one (the link will change).")
+                log.warning("The sharing tunnel stopped; starting it again%s.", "" if host else " (the link will change)")
             except Exception as e:
                 log.warning("Sharing tunnel problem: %s", e)
             gate.link = None

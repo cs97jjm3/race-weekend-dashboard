@@ -31,7 +31,10 @@ def ask_claude(prompt, max_tokens=80, timeout=30):
         except Exception:
             reason = ""
         raise RuntimeError("HTTP %s %s" % (e.code, reason or e.reason))
-    return "".join(b.get("text", "") for b in out.get("content", [])).strip()
+    text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text").strip()
+    if not text:
+        raise RuntimeError("Claude sent back an empty answer (stop reason: %s)" % out.get("stop_reason"))
+    return text
 
 
 class Notifier:

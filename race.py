@@ -103,6 +103,7 @@ class Race:
         self.gap_hist = {}        # num -> {lap: (interval to car ahead, gap to leader)}
         self.top_speed = {}       # num -> best speed trap reading, km/h
         self.quali_part = 0       # last qualifying part we've seen
+        self.penalties = {}       # num -> list of penalty labels this session, e.g. ["+5s"]
         self.standings = None     # set by dashboard.py to the Standings helper
 
     def set_clock(self, t, speed):
@@ -222,6 +223,10 @@ class Race:
             return
         with self.lock:
             self.quiet = quiet
+            if topic == "SessionInfo" and isinstance(data, dict) and data.get("Path"):
+                old_path = (self.raw.get("SessionInfo") or {}).get("Path")
+                if old_path and old_path != data["Path"]:
+                    self._new_session()
             self.raw[topic] = merge(self.raw.get(topic), data)
             try:
                 if topic == "TrackStatus":
@@ -241,6 +246,18 @@ class Race:
                 self._settle_moves()
             except Exception as e:
                 self.status = "Problem reading %s: %s" % (topic, e)
+
+    def _new_session(self):
+        """F1 has moved on to the next session (e.g. FP1 to FP2): start the timing afresh,
+        so nothing from the last session hangs about. The feed history is kept."""
+        keep = {k: self.raw[k] for k in ("DriverList", "WeatherData", "TrackStatus") if k in self.raw}
+        self.raw = keep
+        self.prev, self.leader, self.session_status = {}, None, None
+        self.rcm_seen = self.radio_seen = 0
+        self.cooldown, self.pending_moves, self.sector_flags = {}, {}, {}
+        self.finished_sent = False
+        self.crossed, self.gap_hist, self.top_speed, self.penalties = {}, {}, {}, {}
+        self.quali_part = 0
 
     def _track(self):
         st = str((self.raw.get("TrackStatus") or {}).get("Status", "1"))
@@ -333,16 +350,58 @@ class Race:
         for m in new:
             self._flag(m)
             text = str(m.get("Message", ""))
-            nums = set(re.findall(r"CAR (\d+)", text))
+            nums = set(re.findall(r"CAR (\d+)", text)) | set(re.findall(r"\b(\d+) \([A-Z]{3}\)", text))
             who = set()
             for n in nums:
                 who.update(self.watchers(n))
-            important = any(w in text for w in ("PENALTY", "INVESTIGATION", "NOTED", "DELETED", "BLACK AND WHITE"))
-            if who and important:
-                tidy = re.sub(r"car (\d+) \(\w+\)", lambda m: self.name(m.group(1)), text.lower())
-                tidy = re.sub(r"\bfia\b", "FIA", tidy)
-                tidy = tidy[:1].upper() + tidy[1:]
-                self.emit("Race control: " + tidy, who=tuple(who), title="RACE CONTROL", kind="rc")
+            up = text.upper()
+            tidy = re.sub(r"(?:cars? )?(\d+) \([a-z]{3}\)", lambda m: self.name(m.group(1)), text.lower())
+            tidy = re.sub(r"\bfia\b", "FIA", tidy)
+            tidy = re.sub(r"^FIA stewards:\s*", "", tidy)
+            tidy = tidy[:1].upper() + tidy[1:]
+            stewards = "STEWARDS" in up or any(w in up for w in ("PENALTY", "INVESTIGATION", "NOTED", "REPRIMAND",
+                                                                  "BLACK AND WHITE", "DISQUALIFIED"))
+            if stewards and "DELETED" not in up:
+                self._penalty(nums, up)
+                stage = ("PENALTY" if "PENALTY" in up and "NO PENALTY" not in up and "SERVED" not in up
+                         else "SERVED" if "SERVED" in up
+                         else "NO FURTHER ACTION" if "NO FURTHER" in up or "NO PENALTY" in up
+                         else "UNDER INVESTIGATION" if "UNDER INVESTIGATION" in up
+                         else "NOTED" if "NOTED" in up
+                         else "REPRIMAND" if "REPRIMAND" in up
+                         else "DECISION")
+                # stewards' calls go to everyone; it's tagged to whoever follows the drivers involved
+                self.emit(tidy, who=tuple(who) if who else EVERYONE, title="STEWARDS · " + stage, kind="stewards",
+                          loud=bool(who) and stage == "PENALTY")
+            elif who and "DELETED" in up:
+                self.emit(tidy, who=tuple(who), title="RACE CONTROL", kind="rc")
+
+    def _penalty(self, nums, up):
+        """Keep a short note of penalties so the timing table can show them."""
+        if len(nums) != 1:
+            m = re.search(r"PENALTY FOR CAR (\d+)", up)
+            nums = {m.group(1)} if m else set()
+        for n in nums:
+            pens = self.penalties.setdefault(n, [])
+            if "SERVED" in up:
+                pens[:] = [p for p in pens if p not in ("DT", "SG")]
+                continue
+            if "NO PENALTY" in up or "NO FURTHER" in up:
+                continue
+            m = re.search(r"(\d+) SECOND TIME PENALTY", up)
+            if m:
+                pens.append("+%ss" % m.group(1))
+            elif "DRIVE THROUGH" in up:
+                pens.append("DT")
+            elif "STOP/GO" in up or "STOP GO" in up:
+                pens.append("SG")
+            elif "GRID" in up and "PENALTY" in up:
+                g = re.search(r"(\d+) PLACE GRID", up)
+                pens.append("%s grid" % ("-" + g.group(1) if g else ""))
+            elif "BLACK AND WHITE" in up:
+                pens.append("B/W flag")
+            elif "DISQUALIFIED" in up:
+                pens.append("DSQ")
 
     def _stats(self):
         """TimingStats carries each driver's best speed trap reading."""
@@ -654,6 +713,7 @@ class Race:
                     "rate": self._rate(n),
                     "sectors": self._sectors(l),
                     "topSpeed": self.top_speed.get(n),
+                    "pens": self.penalties.get(n, []),
                     "stints": self._stint_list(n),
                 }
                 if quali:
