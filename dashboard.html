@@ -205,6 +205,7 @@
   .tile b { display: block; font: 700 46px/1 "Barlow Condensed", sans-serif; color: var(--ink); }
   .tile span { color: var(--dim); font-size: 15px; letter-spacing: 1px; text-transform: uppercase; }
   .tile.hot b { color: var(--accent); }
+  .tile b.word { font-size: 32px; line-height: 1.35; overflow-wrap: anywhere; }
   .histbody h4 { margin: 0 0 10px; font-size: 16px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); font-weight: 600; }
   .hsec { margin-bottom: 28px; }
   .seas { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(28px, 1fr); gap: 4px; align-items: end; height: 190px; }
@@ -232,6 +233,15 @@
   .wtable td { padding: 6px 10px; border-bottom: 1px solid #1a2028; }
   .wtable td.y { font-family: "JetBrains Mono", monospace; font-size: 15px; color: var(--dim); }
   .wtable tr.mine td { color: var(--accent); }
+  .seas .c[data-round], .chip[data-round], .wtable tr[data-round] { cursor: pointer; }
+  .seas .c[data-round]:hover .bar { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .chip[data-round]:hover, .wtable tr[data-round]:hover td { border-color: var(--accent); background: #1a2028; }
+  .histback { background: none; border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 16px; padding: 3px 12px; border-radius: 4px; cursor: pointer; margin-bottom: 14px; }
+  .wtable td.n { font-family: "JetBrains Mono", monospace; font-size: 15px; }
+  .wtable .up { color: var(--green); } .wtable .dn { color: #ff6b81; }
+  .wtable tr.this td { background: rgba(200, 240, 49, .08); }
+  .wtable td.p { font-weight: 700; width: 46px; }
+  .clicknote { color: var(--dim); font-size: 14px; margin-top: 6px; }
   .histnote { color: var(--dim); font-size: 14px; margin-top: 18px; }
   /* sectors and qualifying */
   .secs { display: inline-flex; gap: 3px; vertical-align: middle; }
@@ -1251,10 +1261,13 @@ function closeHist() { hm.classList.remove("open"); histToken++; }
 document.getElementById("histclose").onclick = closeHist;
 hm.onclick = ev => { if (ev.target === hm) closeHist(); };
 document.addEventListener("keydown", ev => { if (ev.key === "Escape") closeHist(); });
-function tile(v, label, hot) { return `<div class="tile ${hot ? "hot" : ""}"><b>${esc(String(v))}</b><span>${esc(label)}</span></div>`; }
+function tile(v, label, hot) {
+  const t = String(v), word = t.length > 6 && !/^[\d+:.\/%–-]+$/.test(t);   // names get a smaller size so they fit
+  return `<div class="tile ${hot ? "hot" : ""}"><b class="${word ? "word" : ""}">${esc(t)}</b><span>${esc(label)}</span></div>`;
+}
 function cls4(label, pos) { return label === "DNF" || label === "DSQ" || label === "DNS" ? "dnf" : pos === 1 ? "win" : pos <= 3 ? "pod" : ""; }
 async function openDriver(code, colour) {
-  const me = ++histToken;
+  const me = ++histToken; histBack = [];
   hm.classList.add("open"); hm.querySelector(".sheet").style.setProperty("--tone", colour || "var(--accent)");
   document.getElementById("histtitle").textContent = code; document.getElementById("histsub").textContent = "";
   hb.innerHTML = `<div class="loading">Looking up ${esc(code)}'s record…<br><small>The first time can take up to 10 seconds. After that it's saved on the laptop.</small></div>`;
@@ -1275,15 +1288,15 @@ async function openDriver(code, colour) {
     const pts = d.season.reduce((a, r) => a + r.points, 0);
     html += `<div class="hsec"><h4>This season, race by race · ${pts % 1 ? pts.toFixed(1) : pts} points</h4><div class="seas">` + d.season.map(r => {
       const k = cls4(r.label, r.pos), h = r.finished || r.pos ? Math.max(6, 100 - ((r.pos || 22) - 1) * 4.3) : 100;
-      return `<div class="c" title="${esc(r.race)}: ${esc(r.label)}${r.grid ? ", started P" + r.grid : ""}, ${r.points} pts">
+      return `<div class="c" data-season="${esc(r.year)}" data-round="${r.round}" title="${esc(r.race)}: ${esc(r.label)}${r.grid ? ", started P" + r.grid : ""}, ${r.points} pts">
         <span class="p">${r.label === "DNF" || r.label === "DSQ" || r.label === "DNS" ? esc(r.label) : r.pos}</span>
         <div class="bar ${k || (r.points > 0 ? "pts" : "")}" style="height:${h * 0.7}%"></div><span class="r">${esc(r.race.slice(0, 3))}</span></div>`;
     }).join("") + `</div><div class="seaskey"><span><i style="background:var(--accent)"></i>Win</span><span><i style="background:#e9edf2"></i>Podium</span>
-      <span><i style="background:var(--green)"></i>Points</span><span><i style="background:#33404d"></i>No points</span><span><i style="background:var(--red);opacity:.55"></i>Didn't finish</span></div></div>`;
+      <span><i style="background:var(--green)"></i>Points</span><span><i style="background:#33404d"></i>No points</span><span><i style="background:var(--red);opacity:.55"></i>Didn't finish</span></div><div class="clicknote">Click a race for the full result.</div></div>`;
   }
   if (d.circuit) {
     html += `<div class="hsec"><h4>At ${esc(d.circuit)}</h4>` + (d.here.length
-      ? `<div class="chips">` + d.here.map(r => `<div class="chip ${cls4(r.label, r.pos)}" title="${esc(r.team)}${r.grid ? ", started P" + r.grid : ""}"><b>${esc(r.label)}</b><span>${esc(r.year)}</span></div>`).join("") + `</div>`
+      ? `<div class="chips">` + d.here.map(r => `<div class="chip ${cls4(r.label, r.pos)}" data-season="${esc(r.year)}" data-round="${r.round}" title="${esc(r.team)}${r.grid ? ", started P" + r.grid : ""}"><b>${esc(r.label)}</b><span>${esc(r.year)}</span></div>`).join("") + `</div>`
       : `<div class="histnote">First race here.</div>`) + `</div>`;
   }
   if (d.mate) {
@@ -1299,8 +1312,63 @@ async function openDriver(code, colour) {
   html += `<div class="histnote">Results from Jolpica (the old Ergast). Grand Prix only; sprints aren't counted in the career numbers.</div>`;
   hb.innerHTML = html;
 }
-async function openCircuit() {
+let histBack = [];   // what to go back to from a race
+function histSnapshot() {
+  return {title: document.getElementById("histtitle").textContent, sub: document.getElementById("histsub").textContent,
+          html: hb.innerHTML, tone: hm.querySelector(".sheet").style.getPropertyValue("--tone"), scroll: hb.scrollTop};
+}
+hb.addEventListener("click", ev => {
+  const el = ev.target.closest("[data-round]");
+  if (el && el.dataset.round && el.dataset.season) openRace(el.dataset.season, el.dataset.round, histSnapshot());
+  if (ev.target.closest("#histback")) {
+    const b = histBack.pop(); if (!b) return;
+    histToken++;
+    document.getElementById("histtitle").textContent = b.title; document.getElementById("histsub").textContent = b.sub;
+    hm.querySelector(".sheet").style.setProperty("--tone", b.tone); hb.innerHTML = b.html; hb.scrollTop = b.scroll;
+  }
+});
+async function openRace(season, round, back) {
   const me = ++histToken;
+  if (back) histBack.push(back);
+  const focus = (back && (back.html.match(/<h3>([^<]+)<\/h3>/) || [])[1]) || "";
+  document.getElementById("histtitle").textContent = "Race"; document.getElementById("histsub").textContent = season;
+  hb.innerHTML = `<button class="histback" id="histback">◀ Back</button><div class="loading">Looking up the ${esc(season)} race…</div>`;
+  hb.scrollTop = 0;
+  let d;
+  try { d = await (await fetch(`/history/race?season=${encodeURIComponent(season)}&round=${encodeURIComponent(round)}`)).json(); }
+  catch (e) { d = {error: "Couldn't reach the dashboard program"}; }
+  if (me !== histToken) return;
+  if (d.error) { hb.innerHTML = `<button class="histback" id="histback">◀ Back</button><div class="loading">${esc(d.error)}</div>`; return; }
+  document.getElementById("histsub").textContent = d.place;
+  const followed = new Set(); (lastState && lastState.rows || []).forEach(r => { if (r.watchers.length) followed.add(r.tla); });
+  const focusLast = focus.split(" ").slice(-1)[0].toLowerCase();
+  const isFocus = x => focusLast && x.name.toLowerCase().endsWith(focusLast);
+  const w = d.results[0], pole = d.quali[0], f = d.fastest, g = d.gainer;
+  const last = n => (n || "").split(" ").slice(-1)[0];
+  let html = `<button class="histback" id="histback">◀ Back</button>
+    <div class="hhero"><div><h3>${esc(d.season)} ${esc(d.name)}</h3><div class="sub">${esc(d.circuit)} · ${esc(d.date)}${d.laps ? " · " + d.laps + " laps" : ""}</div></div></div>`;
+  html += `<div class="tiles">${w ? tile(last(w.name), "Winner" + (w.grid ? ", from P" + w.grid : ""), true) : ""}${pole ? tile(pole.name, "Pole") : ""}
+    ${f ? tile(f.fastest, "Fastest lap: " + last(f.name)) : ""}${g ? tile("+" + g.gained, "Best climb: " + last(g.name) + " (P" + g.grid + " to P" + g.pos + ")") : ""}
+    ${tile(d.retired, d.retired === 1 ? "Didn't finish" : "Didn't finish")}</div>`;
+  html += `<div class="hsec"><h4>Result</h4><table class="wtable"><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Grid</th><th>+/–</th><th>Laps</th><th>Time / reason</th><th>Pts</th></tr></thead><tbody>` +
+    d.results.map(x => {
+      const gd = x.gained;
+      return `<tr class="${isFocus(x) ? "this" : ""} ${followed.has(x.code) ? "mine" : ""}"><td class="p">${esc(x.label === "DNF" || x.label === "DSQ" || x.label === "DNS" ? x.label : x.pos)}</td>
+        <td>${esc(x.name)}</td><td>${esc(x.team)}</td><td class="n">${x.grid === 0 ? "Pits" : esc(x.grid ?? "")}</td>
+        <td class="n ${gd > 0 ? "up" : gd < 0 ? "dn" : ""}">${gd === undefined || gd === null ? "" : gd > 0 ? "▲" + gd : gd < 0 ? "▼" + (-gd) : "–"}</td>
+        <td class="n">${esc(x.laps ?? "")}</td><td class="n">${esc(x.time)}${x.fastestRank === 1 ? ' <span style="color:var(--purple)">● fastest lap</span>' : ""}</td>
+        <td class="n">${x.points ? (x.points % 1 ? x.points.toFixed(1) : x.points) : ""}</td></tr>`;
+    }).join("") + `</tbody></table></div>`;
+  if (d.quali.length) {
+    html += `<div class="hsec"><h4>Qualifying</h4><table class="wtable"><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Q1</th><th>Q2</th><th>Q3</th></tr></thead><tbody>` +
+      d.quali.map(x => `<tr class="${isFocus(x) ? "this" : ""} ${followed.has(x.code) ? "mine" : ""}"><td class="p">${esc(x.pos)}</td><td>${esc(x.name)}</td><td>${esc(x.team)}</td>
+        <td class="n">${esc(x.q1)}</td><td class="n">${esc(x.q2)}</td><td class="n">${esc(x.q3)}</td></tr>`).join("") + `</tbody></table></div>`;
+  }
+  html += `<div class="histnote">From Jolpica (the old Ergast). The driver you came from is shaded; drivers someone here follows are in lime.</div>`;
+  hb.innerHTML = html;
+}
+async function openCircuit() {
+  const me = ++histToken; histBack = [];
   hm.classList.add("open"); hm.querySelector(".sheet").style.setProperty("--tone", "var(--accent)");
   document.getElementById("histtitle").textContent = "The track"; document.getElementById("histsub").textContent = "";
   hb.innerHTML = `<div class="loading">Looking up the history of this race…</div>`;
@@ -1315,9 +1383,9 @@ async function openCircuit() {
   html += `<div class="tiles">${tile(d.count, "Races here")}${top ? tile(top[1], "Wins: " + top[0], true) : ""}${topT ? tile(topT[1], "Wins: " + topT[0]) : ""}
     ${tile(d.fromPole + "/" + d.count, "Won from P1 on the grid")}${d.deepest && (d.deepest.grid === 0 || d.deepest.grid > 1) ? tile(d.deepest.grid === 0 ? "Pit lane" : "P" + d.deepest.grid, "Furthest back to win (" + d.deepest.driver + " " + d.deepest.year + ")") : ""}</div>`;
   html += `<div class="hsec"><h4>Every winner here</h4><table class="wtable"><thead><tr><th>Year</th><th>Winner</th><th>Team</th><th>Started</th><th>Pole</th></tr></thead><tbody>` +
-    d.winners.map(w => `<tr class="${followed.has(w.code) ? "mine" : ""}"><td class="y">${esc(w.year)}</td><td>${esc(w.driver)}</td><td>${esc(w.team)}</td>
+    d.winners.map(w => `<tr class="${followed.has(w.code) ? "mine" : ""}" data-season="${esc(w.year)}" data-round="${w.round}"><td class="y">${esc(w.year)}</td><td>${esc(w.driver)}</td><td>${esc(w.team)}</td>
       <td>${w.grid === 0 ? "Pit lane" : "P" + esc(w.grid ?? "")}</td><td>${esc(w.pole || "")}</td></tr>`).join("") + `</tbody></table></div>`;
-  html += `<div class="histnote">Results from Jolpica (the old Ergast). Highlighted rows are drivers someone here follows.</div>`;
+  html += `<div class="histnote">Results from Jolpica (the old Ergast). Highlighted rows are drivers someone here follows. Click a year for the full result.</div>`;
   hb.innerHTML = html;
 }
 document.getElementById("rows").addEventListener("click", ev => {

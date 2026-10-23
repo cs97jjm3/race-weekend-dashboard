@@ -239,7 +239,9 @@ def make_handler(race, radio, preds, gate):
                 args = urllib.parse.parse_qs(q.query)
                 day = race.session().get("StartDate") or time.strftime("%Y-%m-%d")
                 try:
-                    if q.path == "/history/driver":
+                    if q.path == "/history/race":
+                        data = history.race(int((args.get("season") or ["0"])[0]), int((args.get("round") or ["0"])[0]))
+                    elif q.path == "/history/driver":
                         data = history.driver(re.sub(r"[^A-Za-z]", "", (args.get("code") or [""])[0])[:3], day)
                     else:
                         data = history.circuit(day)

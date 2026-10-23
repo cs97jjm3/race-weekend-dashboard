@@ -156,7 +156,7 @@ def driver(code, session_date=None):
     for r in _all_races("current/drivers/%s/results.json" % did, HOUR):
         res = (r.get("Results") or [{}])[0]
         team = res.get("Constructor") or team
-        season.append({"round": _num(r["round"]), "race": r["raceName"].replace(" Grand Prix", ""),
+        season.append({"round": _num(r["round"]), "year": r["season"], "race": r["raceName"].replace(" Grand Prix", ""),
                        "pos": _num(res.get("position")), "label": _short(res), "grid": _num(res.get("grid")),
                        "points": float(res.get("points") or 0), "finished": _finished(res)})
 
@@ -171,7 +171,7 @@ def driver(code, session_date=None):
     if circuit:
         for r in _all_races("circuits/%s/drivers/%s/results.json" % (circuit["circuitId"], did), 12 * HOUR):
             res = (r.get("Results") or [{}])[0]
-            here.append({"year": r["season"], "label": _short(res), "pos": _num(res.get("position")),
+            here.append({"year": r["season"], "round": _num(r["round"]), "label": _short(res), "pos": _num(res.get("position")),
                          "grid": _num(res.get("grid")), "team": (res.get("Constructor") or {}).get("name", "")})
         here.reverse()
 
@@ -220,7 +220,7 @@ def circuit(session_date):
     for r in _all_races("circuits/%s/results/1.json" % cid, 12 * HOUR):
         res = (r.get("Results") or [{}])[0]
         d = res.get("Driver") or {}
-        winners.append({"year": r["season"], "race": r["raceName"], "driver": d.get("familyName", ""),
+        winners.append({"year": r["season"], "round": _num(r["round"]), "race": r["raceName"], "driver": d.get("familyName", ""),
                         "code": d.get("code", ""), "team": (res.get("Constructor") or {}).get("name", ""),
                         "grid": _num(res.get("grid"))})
     poles = {}
@@ -244,3 +244,49 @@ def circuit(session_date):
             "race": rw.get("raceName", ""), "first": winners[-1]["year"] if winners else "", "count": len(winners),
             "winners": winners, "mostWins": top, "mostTeams": top_teams, "fromPole": from_pole,
             "deepest": max(winners, key=lambda w: 99 if w["grid"] == 0 else (w["grid"] or 0)) if winners else None}
+
+
+def race(season, rnd):
+    """Everything about one Grand Prix: the result, qualifying, and the headlines."""
+    season, rnd = int(season), int(rnd)
+    old = season < int(time.strftime("%Y"))
+    ttl = 365 * 24 * HOUR if old else 6 * HOUR
+    races = _all_races("%d/%d/results.json" % (season, rnd), ttl)
+    if not races:
+        return {"error": "No result for that race yet"}
+    r = races[0]
+    rows = []
+    fastest = None
+    for x in r.get("Results", []):
+        d, k = x.get("Driver") or {}, x.get("Constructor") or {}
+        fl = x.get("FastestLap") or {}
+        row = {"pos": _num(x.get("position")), "label": _short(x), "code": d.get("code", ""),
+               "name": "%s %s" % (d.get("givenName", ""), d.get("familyName", "")), "team": k.get("name", ""),
+               "grid": _num(x.get("grid")), "laps": _num(x.get("laps")), "points": float(x.get("points") or 0),
+               "time": (x.get("Time") or {}).get("time") or x.get("status", ""),
+               "fastest": (fl.get("Time") or {}).get("time", ""), "fastestRank": _num(fl.get("rank"))}
+        if row["grid"] is not None and row["pos"] is not None and _finished(x):
+            row["gained"] = (row["grid"] or len(r["Results"])) - row["pos"]
+        rows.append(row)
+        if row["fastestRank"] == 1:
+            fastest = row
+    quali = []
+    try:
+        q = _all_races("%d/%d/qualifying.json" % (season, rnd), ttl)
+        for x in (q[0].get("QualifyingResults", []) if q else []):
+            d = x.get("Driver") or {}
+            quali.append({"pos": _num(x.get("position")), "code": d.get("code", ""), "name": d.get("familyName", ""),
+                          "team": (x.get("Constructor") or {}).get("name", ""),
+                          "q1": x.get("Q1", ""), "q2": x.get("Q2", ""), "q3": x.get("Q3", "")})
+    except Exception as e:
+        log.info("No qualifying for %s/%s (%s)", season, rnd, e)
+    movers = [x for x in rows if x.get("gained") is not None]
+    gainer = max(movers, key=lambda x: x["gained"]) if movers else None
+    out = [x for x in rows if x["label"] in ("DNF", "DSQ", "DNS")]
+    c = r.get("Circuit") or {}
+    return {"season": season, "round": rnd, "name": r.get("raceName", ""), "date": r.get("date", ""),
+            "circuit": c.get("circuitName", ""), "place": "%s, %s" % ((c.get("Location") or {}).get("locality", ""),
+                                                                      (c.get("Location") or {}).get("country", "")),
+            "results": rows, "quali": quali, "fastest": fastest,
+            "gainer": gainer if gainer and gainer["gained"] > 0 else None,
+            "retired": len(out), "laps": rows[0]["laps"] if rows else None}
