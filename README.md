@@ -346,6 +346,33 @@ race read, a qualifying read against the cut, or a practice read of times and ty
 a 20 second gap between presses so a double tap doesn't cost twice. If the AI doesn't answer,
 the reason shows in the feed and the black window.
 
+### Commentary and asking about a topic
+
+With "Commentary on", the AI adds a couple of sentences to the feed by itself: every 5 laps or
+so in a race (never closer than four minutes apart), about every 8 minutes in practice and every
+5 in qualifying. It goes quiet under a safety car or red flag, when the feed is busy anyway.
+It picks whatever is most interesting at the time rather than at random, and never the same
+topic twice running: a gap closing fast, old tyres and who still has to stop, who won and lost
+in a round of pit stops, what a safety car now would do, or the race so far. Weather only comes
+up when it matters: rain starting, a good chance of rain in the next hour (from Open-Meteo's
+forecast for the circuit), or the track temperature changing a lot since the start. These show
+as "COMMENTARY · TYRES" and so on.
+
+The ▾ next to "What's happening?" asks about one thing in particular. In a race: Race so far,
+Tyres, Who's catching who, Pit stops: who won and lost, Safety car now? and Weather. In
+qualifying: Qualifying so far, The cut line and Weather. In practice: Pace so far, Tyres and
+long runs, and Weather.
+
+For pit stops, the dashboard notes where each car was when it stopped and who was just ahead,
+then compares later: "pitted from P5, now P3, and got past Leclerc, who stopped later" is an
+undercut that worked. How long each stop took isn't in the free feed we read, so it can't say
+that.
+
+The dashboard works the numbers out itself from the timing (how fast a gap is shrinking and
+when they'd catch, where a driver would rejoin after a cheaper stop under a safety car) and the
+AI only puts them into words. We know which tyre and how old it is, not wear or temperatures,
+so the AI is told never to guess those. A race with commentary uses around a dozen requests.
+
 Keep keys private, like passwords, and never put
 config.py on GitHub with a key in it.
 

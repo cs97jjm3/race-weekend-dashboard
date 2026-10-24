@@ -30,6 +30,7 @@ from radio import Radio
 from race import Race
 from standings import Standings
 import share
+import commentary
 import history
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -41,10 +42,7 @@ ASK_GAP_SECONDS = 20
 _last_ask = [0.0]
 
 
-def who_follows(race):
-    by_code = {d.get("Tla"): race.name(n) for n, d in race.drivers().items()}
-    return "; ".join("%s follows %s" % (name, ", ".join(p["teams"] + [by_code.get(c, c) for c in p["drivers"]]))
-                     for name, p in config.PEOPLE.items())
+from commentary import who_follows   # noqa: E402  (kept here for older imports)
 
 
 def debrief(race, preds):
@@ -129,13 +127,22 @@ def make_handler(race, radio, preds, gate):
         """Claude didn't answer: say so in the cmd window and in the feed, not just on the button."""
         log.warning("'What's happening?' failed: %s", e)
         with race.lock:
-            race.emit("%s didn't answer this time (%s). Try again in a minute." % (ai_name(), e),
+            race.emit("%s didn't answer this time (%s). Try again in a minute." % (ai_name()[:1].upper() + ai_name()[1:], e),
                       title="AI", kind="info", send=False)
         return {"error": "%s didn't answer" % ai_name()}
 
-    def ask_now():
-        """The 'What's happening?' button: a short read of the race from Claude.
-        After the chequered flag it writes the race debrief instead."""
+    def say(topic, text, auto):
+        """Put a read in the feed: 'COMMENTARY · TYRES' when it came by itself, 'TYRES' when asked for."""
+        label = commentary.LABEL.get(topic, "READ")
+        with race.lock:
+            race.emit(text, title=("COMMENTARY · " if auto else "") + label + via(),
+                      kind="comm" if auto else "ai", send=False)
+
+    race.say = say
+
+    def ask_now(topic=None):
+        """The 'What's happening?' button and its menu: a short read on a topic (or the most
+        interesting one right now). After the chequered flag it writes the race debrief instead."""
         if not ai_ready():
             return {"error": "No AI key in config.py"}
         if not race.notify.enabled:
@@ -146,41 +153,19 @@ def make_handler(race, radio, preds, gate):
         _last_ask[0] = time.time()
         if not race.lines():
             return {"error": "No race data yet"}
-        if race.finished_sent and race.is_race():
+        if race.finished_sent and race.is_race() and topic in (None, "debrief"):
             try:
                 debrief(race, preds)
                 return {"ok": True}
             except Exception as e:
                 return {"error": "%s didn't answer: %s" % (ai_name(), e)}
-        people = who_follows(race)
-        if race.is_quali():
-            prompt = ("You're a calm, plain-spoken F1 race engineer on the pit wall with two fans. %s. "
-                      "Using ONLY the timing data below, give a quick read of qualifying right now in 2 or 3 short "
-                      "sentences: who's quickest, how their drivers stand against the cut, and who's in danger. "
-                      "No hype, no emojis, no bullet points, don't invent facts that aren't in the data.\n\n%s"
-                      % (people, race.ask_context()))
-            try:
-                from notify import ask_claude
-                reply = ask_claude(prompt, max_tokens=1500)
-            except Exception as e:
-                return failed(e)
-            with race.lock:
-                race.emit(reply, title="QUALI READ" + via(), kind="ai", send=False)
-            return {"ok": True}
-        prompt = ("You're a calm, plain-spoken F1 race engineer on the pit wall with two fans. %s. "
-                  "Using ONLY the timing data below, give a quick read of the session right now in 2 or 3 short "
-                  "sentences: what's happening at the front, anything notable for their drivers, and one thing "
-                  "to watch in the next few laps. No hype, no emojis, no bullet points, don't invent facts "
-                  "that aren't in the data.\n\n%s" % (people, race.ask_context()))
         try:
-            from notify import ask_claude
-            reply = ask_claude(prompt, max_tokens=1500)
+            last = race.commentator.last_topic if getattr(race, "commentator", None) else None
+            t, reply = commentary.read(race, topic, last)
         except Exception as e:
             return failed(e)
-        with race.lock:
-            race.emit(reply, title=("RACE READ" if race.is_race() else "SESSION READ") + via(), kind="ai", send=False)
+        say(t, reply, auto=False)
         return {"ok": True}
-
 
     page = open(os.path.join(HERE, "dashboard.html"), encoding="utf-8").read().encode("utf-8")
 
@@ -258,7 +243,20 @@ def make_handler(race, radio, preds, gate):
                     log.info("AI comments %s", "on" if race.notify.enabled else "off")
                 return self._json({"on": race.notify.enabled})
             if self.path == "/ai/ask":
-                return self._json(ask_now())
+                try:
+                    n = int(self.headers.get("Content-Length") or 0)
+                    topic = (json.loads(self.rfile.read(min(n, 2000)) or b"{}") or {}).get("topic") if n else None
+                except Exception:
+                    topic = None
+                return self._json(ask_now(topic if isinstance(topic, str) else None))
+            if self.path == "/ai/commentary" and gate.is_remote(self):
+                return self._json({"error": "Only James can switch that"}, 403)
+            if self.path == "/ai/commentary":
+                c = getattr(race, "commentator", None)
+                if c:
+                    c.on = not c.on
+                    log.info("Commentary %s", "on" if c.on else "off")
+                return self._json({"on": bool(c and c.on)})
             if self.path == "/predictions":
                 try:
                     n = int(self.headers.get("Content-Length") or 0)
@@ -279,6 +277,9 @@ def make_handler(race, radio, preds, gate):
                 v = race.view()
                 remote = gate.is_remote(self)
                 v["viewer"] = "away" if remote else "home"
+                c = getattr(race, "commentator", None)
+                v["ai"]["commentary"] = bool(c and c.on)
+                v["ai"]["topics"] = commentary.TOPICS[commentary.kind(race)]
                 if not remote and gate.enabled():
                     v["share"] = {"link": gate.link, "passcode": gate.passcode}
                 body = json.dumps(v).encode("utf-8")
@@ -451,6 +452,7 @@ def main():
     radio = Radio(race)
     race.radio_hook = radio
     race.standings = Standings()
+    race.commentator = commentary.Commentator(race, lambda t, text: race.say(t, text, auto=True))
 
     def warm_history():
         """Once the driver list has arrived, quietly look up everyone the family follows."""

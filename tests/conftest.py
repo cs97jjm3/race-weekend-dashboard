@@ -55,3 +55,10 @@ def new_race():
     r = Race(rec)
     r.sent = rec.events
     return r
+
+
+@pytest.fixture(autouse=True)
+def no_rain_forecast_lookups(monkeypatch):
+    """The commentary asks Open-Meteo for a rain forecast; tests never go online."""
+    import commentary
+    monkeypatch.setattr(commentary, "forecast", lambda race: None)

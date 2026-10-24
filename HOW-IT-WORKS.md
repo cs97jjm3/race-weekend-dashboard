@@ -16,7 +16,9 @@ flowchart LR
     feed --> race["race.py<br/>the race picture<br/>and alerts"]
     race --> dash["dashboard.py<br/>small web server"]
     dash <--> page["dashboard.html<br/>the screen"]
-    race --> notify["notify.py<br/>AI comments<br/>(Claude or Gemini)"]
+    race --> comm["commentary.py<br/>topics and the facts<br/>behind each one"]
+    comm --> notify["notify.py<br/>AI comments<br/>(Claude or Gemini)"]
+    race --> notify
     race --> radio["radio.py<br/>team radio transcripts"]
     jolpica["Jolpica<br/>(the old Ergast)"] --> standings["standings.py"]
     jolpica --> history["history.py<br/>driver, team, race history"]
@@ -36,7 +38,7 @@ All of it is free.
 | Timing, positions, sectors, tyres, flags, race control, team radio, weather at the track | F1 live timing | The same unofficial feed the F1 website and app use. No login. |
 | Circuit outlines, corner numbers, marshal sectors | MultiViewer | Downloaded once per track and kept in `tracks/`. |
 | Championship standings, driver and team history, past results | Jolpica | The free replacement for Ergast. Saved in `history_cache/`. |
-| Rain radar and forecast | RainViewer and Open-Meteo | Loaded by the web page directly. |
+| Rain radar and forecast | RainViewer and Open-Meteo | Loaded by the web page directly; the commentary also checks Open-Meteo's rain chance every ten minutes. |
 | Team radio words | faster-whisper | A free speech model that runs on the laptop. Nothing is sent anywhere. |
 | Short written comments | Claude or Gemini (optional) | Only if you add a key. Claude is about a tenth of a penny each; Gemini has a free tier in some countries. |
 
@@ -82,6 +84,13 @@ and works out the points each driver would get if the race finished now.
 **notify.py** sends the optional AI comments (Claude, Gemini, or anything OpenAI-style, chosen in config.py) and the "What's happening?" reads. A blank
 or failed answer is reported in the feed rather than shown as an empty message.
 
+**commentary.py** turns the timing into the facts for each commentary topic (race so far,
+tyres, who's catching who, pit stops and undercuts, a safety car now, the weather and rain
+forecast, the cut line, practice pace), works out which
+topic is most interesting at the moment, and runs the automatic commentary every five laps or
+so. The sums are done here, not by the AI: how fast a gap is closing and when they'd catch, and
+where a driver would come out after a stop under a safety car. The AI only writes the words.
+
 **radio.py** fetches team radio clips for your drivers and writes them out with the speech
 model, one at a time in the background.
 
@@ -106,7 +115,7 @@ copying `config.example.py` (or copy it yourself), and it's listed in `.gitignor
 The `tests` folder checks the parts that matter most, using the demo recordings and made-up
 answers instead of the internet: reading F1's feed, the stewards and penalty handling,
 qualifying cut lines, starting a new session, the passcode gate, the history lookups, and
-what happens when the AI sends back a blank answer, for Claude, Gemini and OpenAI-style answers. They always use `config.example.py`, so
+the commentary facts, topic choice and timing, what happens when the AI sends back a blank answer, for Claude, Gemini and OpenAI-style answers. They always use `config.example.py`, so
 they give the same result on every computer. GitHub runs them on Windows and Linux every time
 code is pushed. To run them yourself:
 

@@ -61,6 +61,8 @@ ALERT_COOLDOWN_SECONDS = 90
 AI_PROVIDER = "claude"
 # A back-up to try if the first one fails or is busy (it needs its own key below), e.g. "claude".
 AI_FALLBACK = ""
+# Automatic AI commentary in the feed (every 5 laps or so in a race). There's also a switch on screen.
+AI_COMMENTARY = True
 
 # Claude: a key from console.anthropic.com. About a tenth of a penny per comment.
 ANTHROPIC_API_KEY = ""

@@ -69,6 +69,18 @@
   .filters .show button.ask::before { display: none; }
   .filters .show button.ask:disabled { opacity: .5; cursor: wait; }
   .ev.ai { border-color: var(--accent); background: #161b12; }
+  .ev.comm { border-color: #6f8a1f; background: #12160f; }
+  .ev.comm .title { color: #a9c94a; }
+  .ev.comm .text { font-style: italic; }
+  .filters .show button.more { padding: 2px 10px; margin-left: -7px; border-left-width: 1px; border-radius: 0 4px 4px 0; }
+  #aiask { border-radius: 4px 0 0 4px; }
+  body.away #aicomm { display: none; }
+  #topicpop { position: absolute; z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px;
+              box-shadow: 0 10px 30px rgba(0,0,0,.5); display: none; min-width: 230px; }
+  #topicpop.open { display: block; }
+  #topicpop .t { color: var(--dim); font-size: 14px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 8px 6px; }
+  #topicpop button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--ink); font: inherit; font-size: 18px; padding: 7px 10px; border-radius: 5px; cursor: pointer; }
+  #topicpop button:hover { background: #1a2028; color: var(--accent); }
   .ev.radio { border-color: #c084fc; }
   .play { margin-top: 6px; background: none; border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 15px; padding: 2px 12px; border-radius: 4px; cursor: pointer; }
   .play.locked { color: var(--dim); cursor: default; }
@@ -390,7 +402,8 @@
     <button data-p="tower" class="on">Timings</button><button data-p="mapsec" class="on">Map &amp; charts</button><button data-p="feedsec" class="on">Feed</button><button class="lay" id="laybtn" title="Put the panels in a different order">Layout ▾</button></span>
   <div id="laypop" role="dialog" aria-label="Panel order"></div>
   <span class="show hidden" id="aictl"><span class="lbl">AI</span>
-    <button id="aitoggle" class="on">Comments</button><button id="aiask" class="ask">What's happening?</button></span>
+    <button id="aitoggle" class="on" title="A short AI comment under pit stops, safety cars and the finish">Comments</button><button id="aicomm" class="on" title="AI commentary in the feed every 5 laps or so">Commentary</button><button id="aiask" class="ask">What's happening?</button><button id="aimenu" class="ask more" title="Ask about something in particular" aria-label="Choose a topic">▾</button></span>
+  <div id="topicpop" role="menu" aria-label="Ask the AI about"></div>
   <div class="key" id="key"></div></div>
 <div class="modal" id="sendmodal" role="dialog" aria-modal="true" aria-labelledby="sendtitle">
   <div class="sheet">
@@ -776,6 +789,12 @@ function render(s) {
   document.getElementById("aictl").classList.toggle("hidden", !ai.available);
   document.getElementById("aitoggle").classList.toggle("on", !!ai.on);
   document.getElementById("aitoggle").textContent = ai.on ? "Comments on" : "Comments off";
+  const cm = document.getElementById("aicomm");
+  cm.classList.toggle("on", !!ai.commentary && !!ai.on);
+  cm.textContent = ai.commentary ? "Commentary on" : "Commentary off";
+  cm.disabled = !ai.on;
+  aiTopics = ai.topics || [];
+  document.getElementById("aimenu").disabled = !ai.on || asking;
   const askBtn = document.getElementById("aiask");
   if (!asking) askBtn.disabled = !ai.on;
   const w = [];
@@ -904,14 +923,34 @@ document.getElementById("aitoggle").onclick = async () => {
   try { await fetch("/ai/toggle", {method: "POST"}); } catch (e) {}
   refresh();
 };
-document.getElementById("aiask").onclick = async () => {
+let aiTopics = [];
+async function askAI(topic) {
   const b = document.getElementById("aiask");
+  document.getElementById("topicpop").classList.remove("open");
   asking = true; b.disabled = true; b.textContent = "Thinking…";
   let msg = "";
-  try { const r = await (await fetch("/ai/ask", {method: "POST"})).json(); msg = r.error || ""; }
-  catch (e) { msg = "Couldn't reach the dashboard program"; }
+  try {
+    const r = await (await fetch("/ai/ask", {method: "POST", headers: {"Content-Type": "application/json"},
+                                          body: JSON.stringify(topic ? {topic} : {})})).json();
+    msg = r.error || "";
+  } catch (e) { msg = "Couldn't reach the dashboard program"; }
   asking = false; b.disabled = false; b.textContent = msg ? msg : "What's happening?";
   if (msg) setTimeout(() => { b.textContent = "What's happening?"; }, 8000);
+  refresh();
+}
+document.getElementById("aiask").onclick = () => askAI(null);
+document.getElementById("aimenu").onclick = ev => {
+  ev.stopPropagation();
+  const pop = document.getElementById("topicpop"), r = ev.currentTarget.getBoundingClientRect();
+  pop.innerHTML = `<div class="t">Ask about</div>` + aiTopics.map(([k, label]) => `<button data-topic="${esc(k)}">${esc(label)}</button>`).join("");
+  pop.querySelectorAll("button[data-topic]").forEach(x => x.onclick = () => askAI(x.dataset.topic));
+  pop.style.left = Math.max(8, Math.min(r.right - 230, window.innerWidth - 246)) + "px";
+  pop.style.top = (r.bottom + 6 + window.scrollY) + "px";
+  pop.classList.toggle("open");
+};
+document.addEventListener("click", ev => { if (!ev.target.closest("#topicpop")) document.getElementById("topicpop").classList.remove("open"); });
+document.getElementById("aicomm").onclick = async () => {
+  try { await fetch("/ai/commentary", {method: "POST"}); } catch (e) {}
   refresh();
 };
 

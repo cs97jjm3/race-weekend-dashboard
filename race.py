@@ -105,6 +105,9 @@ class Race:
         self.top_speed = {}       # num -> best speed trap reading, km/h
         self.quali_part = 0       # last qualifying part we've seen
         self.penalties = {}       # num -> list of penalty labels this session, e.g. ["+5s"]
+        self.grid = {}            # num -> starting position, taken at lights out
+        self.pit_log = []         # every stop this session: who, which lap, from where, who was around them
+        self.weather_start = {}   # the weather when the session started, to compare with later
         self.standings = None     # set by dashboard.py to the Standings helper
 
     def set_clock(self, t, speed):
@@ -257,7 +260,8 @@ class Race:
         self.rcm_seen = self.radio_seen = 0
         self.cooldown, self.pending_moves, self.sector_flags = {}, {}, {}
         self.finished_sent = False
-        self.crossed, self.gap_hist, self.top_speed, self.penalties = {}, {}, {}, {}
+        self.crossed, self.gap_hist, self.top_speed, self.penalties, self.grid = {}, {}, {}, {}, {}
+        self.pit_log, self.weather_start = [], {}
         self.quali_part = 0
 
     def _track(self):
@@ -283,6 +287,11 @@ class Race:
         self.session_status = st
         name = "%s %s" % ((self.session().get("Meeting") or {}).get("Name", ""), self.session().get("Name", ""))
         if st == "Started":
+            if not self.weather_start:
+                self.weather_start = dict(self.raw.get("WeatherData") or {})
+            if self.is_race() and not self.grid:
+                self.grid = {n: int(l["Position"]) for n, l in self.lines().items()
+                             if str(l.get("Position", "")).isdigit()}
             if self.is_quali() and self.quali_part > 1:
                 return     # each part restarting; the part change already said so
             self.emit("%s is underway" % name.strip(), title="LIGHTS OUT" if self.is_race() else "SESSION STARTED", kind="start")
@@ -526,6 +535,11 @@ class Race:
             in_pit = bool(l.get("InPit"))
             if in_pit and not p.get("in_pit"):
                 p["pitted_at"] = self.now()
+                if race and self.session_status == "Started" and str(l.get("Position", "")).isdigit():
+                    pos = int(l["Position"])
+                    comp, age = self.tyre(n)
+                    self.pit_log.append({"num": n, "lap": self.lap()[0], "pos": pos, "ahead": self._at_position(pos - 1),
+                                         "behind": self._at_position(pos + 1), "tyre": comp, "age": age})
                 if who and race:
                     self._pit_alert(n, who)
             p["in_pit"] = in_pit
