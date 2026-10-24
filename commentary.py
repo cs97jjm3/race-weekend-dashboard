@@ -32,6 +32,10 @@ RULES = ("You're a calm, plain-spoken F1 commentator talking to a family watchin
          "no lists, and don't start with 'So' or 'Well'.")
 
 
+class FactsProblem(RuntimeError):
+    """Our own sums went wrong, before any AI was asked."""
+
+
 def who_follows(race):
     by_code = {d.get("Tla"): race.name(n) for n, d in race.drivers().items()}
     return "; ".join("%s follows %s" % (name, ", ".join(p["teams"] + [by_code.get(c, c) for c in p["drivers"]]))
@@ -106,7 +110,7 @@ def forecast(race):
     import json
     import urllib.request
     url = ("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&minutely_15=precipitation"
-           "&forecast_minutely_15=6&hourly=precipitation_probability&forecast_hours=2&timezone=auto" % where)
+           "&forecast_minutely_15=6&hourly=precipitation_probability&forecast_hours=2&timezone=auto" % (where[0], where[1]))
     data = None
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "race-weekend-dashboard"}), timeout=10) as r:
@@ -141,7 +145,11 @@ def weather_story(race):
     was_wet = str(w0.get("Rainfall", "0")) not in ("0", "", "None")
     if raining:
         matters += 3 if not was_wet else 1.5
-    f = forecast(race)
+    try:
+        f = forecast(race)
+    except Exception as e:
+        log.info("Rain forecast skipped (%s)", e)
+        f = None
     if f and f.get("chance") is not None:
         lines.append("Forecast for the circuit: %d%% chance of rain in the next hour%s." % (
             f["chance"], ", about %.1f mm expected" % f["mm"] if f.get("mm") else ""))
@@ -347,7 +355,11 @@ def read(race, topic=None, last=None):
     allowed = [t for t, _ in TOPICS[kind(race)]]
     if topic not in allowed:
         topic = allowed[0]
-    data = facts(race, topic)          # view() takes the race lock itself
+    try:
+        data = facts(race, topic)      # view() takes the race lock itself
+    except Exception as e:
+        log.exception("Commentary facts failed")
+        raise FactsProblem("the dashboard couldn't put the %s facts together: %s" % (topic, e))
     prompt = (RULES.format(people=who_follows(race)) + "\n\nTopic: %s.\n\n%s" % (
         dict(TOPICS[kind(race)])[topic], data))
     return topic, ask_claude(prompt, max_tokens=1500)

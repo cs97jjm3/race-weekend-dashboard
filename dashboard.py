@@ -126,8 +126,12 @@ def make_handler(race, radio, preds, gate):
     def failed(e):
         """Claude didn't answer: say so in the cmd window and in the feed, not just on the button."""
         log.warning("'What's happening?' failed: %s", e)
+        who = ai_name()[:1].upper() + ai_name()[1:]
+        msg = ("Something went wrong on our side: %s. Please send James a screenshot." % e
+               if isinstance(e, commentary.FactsProblem) else
+               "%s didn't answer this time (%s). Try again in a minute." % (who, e))
         with race.lock:
-            race.emit("%s didn't answer this time (%s). Try again in a minute." % (ai_name()[:1].upper() + ai_name()[1:], e),
+            race.emit(msg,
                       title="AI", kind="info", send=False)
         return {"error": "%s didn't answer" % ai_name()}
 

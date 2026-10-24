@@ -113,3 +113,31 @@ def test_rain_starting_is_the_story(new_race):
     new_race.update("WeatherData", {"Rainfall": "1"})
     assert commentary.weather_story(new_race)[1] >= 3
     assert "raining at the track" in commentary.facts(new_race, "weather")
+
+
+def test_rain_forecast_lookup_builds_its_address(new_race, monkeypatch):
+    """The real forecast lookup (other tests skip it): check the address it asks for."""
+    import importlib
+    import io
+    import json
+    import urllib.request
+    real = importlib.reload(commentary)              # undo the test-wide stand-in
+    play_until(new_race, "demo", 3)
+    asked = {}
+
+    class Reply(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout):
+        asked["url"] = req.full_url
+        return Reply(json.dumps({"minutely_15": {"precipitation": [0, 0.2, 0.4, 0]},
+                                 "hourly": {"precipitation_probability": [30, 55]}}).encode())
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    real._forecast_cache.update(at=0.0, key=None, data=None)
+    f = real.forecast(new_race)
+    assert "latitude=30.1328&longitude=-97.6411" in asked["url"]
+    assert f == {"chance": 55, "mm": 0.6}
