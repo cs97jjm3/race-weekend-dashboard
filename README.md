@@ -15,7 +15,10 @@ the names, teams and drivers under PEOPLE. Your config.py is private and never s
 
 ---
 
-A live race screen and phone alerts for James and Ed, using F1's own free live timing.
+A live race screen for the family, using F1's own free live timing: timing tower with sector
+times, track map, tyres, gaps, speeds, standings, stewards' decisions, team radio with
+transcripts, driver and team history, a predictions game and optional AI commentary. Each
+person picks the teams and drivers they follow and gets their own colour and alerts.
 
 ## For the technically minded: setting it up by hand
 
@@ -61,7 +64,10 @@ py dashboard.py
 
 It connects to F1's live timing and fills in once the session is running. Each session
 is saved in the `recordings` folder so you can replay it later (add `--no-record` to skip that). Leave it going
-for the whole session; it reconnects by itself if the connection drops. Ctrl+C stops it.
+for the whole session, or the whole weekend: it reconnects by itself if the connection drops,
+and when F1 moves on to the next session (FP2 to FP3, say) the timing starts afresh while the
+feed keeps its history. Between sessions F1 sends nothing, so the black window says so once
+and checks the connection every couple of minutes. Ctrl+C stops it.
 
 Other screens in the house can watch too: open `http://<laptop's IP address>:8080` on
 the same Wi-Fi.
@@ -81,8 +87,9 @@ py dashboard.py --share
 ```
 
 After a few seconds it prints a link (four random words ending in trycloudflare.com) and a
-six-number passcode, and shows both at the top of your screen with a "Copy for Dad" button.
-Send him both. He opens the link on his phone, tablet or computer, types the code once, and
+six-number passcode, and shows both at the top of your screen with a "Send link" button. That
+opens a ready-written message you can change, with buttons for WhatsApp, Gmail, Messenger,
+other email, a text message or plain copy. Send it as a private message, never a public post. Dad opens the link on his phone, tablet or computer, types the code once, and
 he's in. Both change every time you start with --share, so each race gets a fresh pair. To
 choose the code yourself: `py dashboard.py --share 271024`.
 
@@ -130,7 +137,9 @@ py dashboard.py --demo quali
 ## Sectors and the middle panel
 
 Every row on the timing tower has three little sector blocks: purple for the fastest anyone
-has done, green for a driver's own best, yellow for slower. The middle of the screen has tabs:
+has done, green for a driver's own best, yellow for slower. Click the Sectors heading to swap
+the blocks for the actual sector times, in the same colours (click again to go back; it
+remembers). On a narrower screen the team names hide to make room. The middle of the screen has tabs:
 
 Map shows the circuit with the cars on it. Tyres shows each driver's stints as coloured bars,
 one per set of tyres, so you can see who's still got to stop. Gaps is a line chart of how far
@@ -142,17 +151,43 @@ each driver is earning in green, and the team table alongside.
 Standings come from the free Jolpica results service. If it can't be reached, the tab just
 says so and everything else carries on.
 
-## Driver and track history
+## Stewards and penalties
 
-Click any driver in the timing table for their record: career races, wins, podiums,
-poles and titles, this season race by race, how they've done at this track every
-year, and how they stack up against their teammate. Click the race name at the top
-for the history of the race: every winner here, where they started, who was on pole,
-and who has won here most.
+Every stewards' decision shows in the feed with a white edge and where it's got to: NOTED,
+UNDER INVESTIGATION, PENALTY, NO FURTHER ACTION or SERVED, so you can follow an incident to
+its outcome. They show for everyone; when your drivers are involved they're tagged to you, and
+a penalty for one of yours plays the alert sound. Track limits deletions for your drivers show
+as RACE CONTROL.
 
-It comes from Jolpica (the free replacement for the old Ergast service). The first
-look at each driver takes a few seconds; after that it's saved in the history_cache
-folder, so it opens straight away.
+Penalties also appear as a small white badge by the driver's name in the timing table: +5s,
+DT (drive-through), SG (stop-go), a grid penalty, B/W flag or DSQ. Drive-throughs and stop-gos
+disappear once served; time penalties stay, as they're added at the finish.
+
+## Driver, team and race history
+
+Click any driver in the timing table for their record: career races, wins, podiums, poles
+and titles, this season race by race as a chart, how they've done at this track every year,
+and how they stack up against their teammate in races, qualifying and points.
+
+Click the team name next to a driver for the team: this year's championship position, seasons,
+wins, podium finishes, poles and titles, both drivers' points, points race by race split
+between the two cars, and their best finish at this track each year. (Records count a team
+under its current name only, so Alpine doesn't include its Renault or Benetton years.)
+
+Click the race name at the top for the history of the race: every winner here, where they
+started, who was on pole, who has won here most and the furthest back anyone has won from.
+
+Click any race in those windows (a bar in a season chart, a year tile, a row of winners) for
+that race in full: winner, pole, fastest lap, best climb, retirements, the full result with
+places gained or lost, and everyone's Q1, Q2 and Q3 times. ◀ Back returns to where you were.
+
+It all comes from Jolpica (the free replacement for the old Ergast service) and is saved in the
+history_cache folder. A minute after the dashboard starts, it quietly looks up everyone the
+family follows, one lookup every couple of seconds, so those open straight away; anyone else
+takes a few seconds the first time. Results are kept until Jolpica has a new qualifying or race
+result, so they refresh after each session rather than on a timer. Past world champions are
+built in. Jolpica allows a few hundred lookups an hour; if we ever hit that, anything already
+looked up still works and new ones wait about ten minutes.
 
 ## Predictions game
 
@@ -200,9 +235,9 @@ amber behind a safety car or VSC, and red for a red flag.
 ## Team radio
 
 When one of your drivers gets a radio message, it shows in the feed with a Play button.
-Since F1 locked its archive in October 2026, the clips usually need an F1 TV login, so
-expect "Locked, needs F1 TV" for now. If a clip does come through and you've installed the
-free speech model, the words appear under the alert:
+At Austin in October 2026 the clips came through without an F1 TV login, though F1 could lock
+them at any time (the feed then says "Locked, needs F1 TV"). If you've installed the free
+speech model, the words appear under the alert:
 
 ```
 py -m pip install -r requirements-radio.txt
@@ -212,11 +247,15 @@ py dashboard.py --test-radio
 The test transcribes a short public domain clip so you know it works. It runs on the laptop
 itself, costs nothing, and downloads the model (about 150 MB) the first time.
 
-## Hiding parts of the screen
+## Hiding and arranging the screen
 
 Use the Show switches (Timings, Map, Feed) to hide any part you don't want, for example
-just the map and the feed on the telly. The rest spreads out to fill the space, and it
-remembers your choice next time.
+just the map and the feed on the telly. The rest spreads out to fill the space.
+
+Layout ▾, next to them, puts the panels in a different order left to right: move each one
+with ◀ and ▶, or "Back to normal". It applies on a wide screen; smaller screens stack the
+panels instead. Both are remembered separately on each screen, so the laptop and Dad's
+phone can be set up differently.
 
 ## Weather
 
@@ -247,8 +286,9 @@ a second, fastest laps, penalties and investigations, and retirements.
 ## Good to know
 
 Live car telemetry and GPS are F1 TV only, so the live screen uses timing, gaps, tyres,
-pit stops, flags and race control messages, which are all free. The full telemetry becomes
-free in the archive about half an hour after each session.
+pit stops, flags and race control messages, which are all free. Since October 2026 F1's
+archive of past sessions needs an F1 TV login too, which is why the dashboard keeps its own
+recordings.
 
 This uses unofficial access to F1's timing feed, the same one FastF1 uses. If F1 changes
 something, it may need a fix.
@@ -265,9 +305,10 @@ With a key, pit stops for your drivers, safety cars, red flags and the finish ge
 comment from Claude, shown in grey under the alert. It uses the small Haiku model and costs
 a fraction of a penny per race. Once there's a key, two AI controls appear on the screen. "Comments on/off" switches the AI
 comments off (for the screen and the phone alerts) without touching config.py. "What's
-happening?" asks Claude for a quick two or three sentence read of the race right now; there's
-a 20 second gap between presses so a double tap doesn't cost twice. Each read is a fraction
-of a penny.
+happening?" asks Claude for a quick two or three sentence read of the session right now (a
+race read, a qualifying read against the cut, or a practice read of times and tyres); there's
+a 20 second gap between presses so a double tap doesn't cost twice. Each read is about a tenth
+of a penny. If Claude doesn't answer, the reason shows in the feed and the black window.
 
 Keep the key private, like a password, and never put
 config.py on GitHub with the key in it.
