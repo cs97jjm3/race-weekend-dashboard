@@ -4,6 +4,7 @@ import threading
 import time
 
 import config
+from notify import ai_name, ai_ready
 
 TRACK = {
     "1": ("GREEN", "Green flag"),
@@ -755,7 +756,7 @@ class Race:
                 "radiusMiles": getattr(config, "WEATHER_RADIUS_MILES", 5),
                 "radioClips": self.radio_seen,
                 "sectorFlags": {str(k): v for k, v in self.sector_flags.items()},
-                "ai": {"available": bool(config.ANTHROPIC_API_KEY.strip()),
+                "ai": {"available": ai_ready(), "name": ai_name(),
                        "on": bool(getattr(self.notify, "enabled", False))},
                 "rows": rows, "events": self.events[:80], "status": self.status,
                 "people": people,

@@ -16,7 +16,7 @@ flowchart LR
     feed --> race["race.py<br/>the race picture<br/>and alerts"]
     race --> dash["dashboard.py<br/>small web server"]
     dash <--> page["dashboard.html<br/>the screen"]
-    race --> notify["notify.py<br/>Claude comments"]
+    race --> notify["notify.py<br/>AI comments<br/>(Claude or Gemini)"]
     race --> radio["radio.py<br/>team radio transcripts"]
     jolpica["Jolpica<br/>(the old Ergast)"] --> standings["standings.py"]
     jolpica --> history["history.py<br/>driver, team, race history"]
@@ -38,7 +38,7 @@ All of it is free.
 | Championship standings, driver and team history, past results | Jolpica | The free replacement for Ergast. Saved in `history_cache/`. |
 | Rain radar and forecast | RainViewer and Open-Meteo | Loaded by the web page directly. |
 | Team radio words | faster-whisper | A free speech model that runs on the laptop. Nothing is sent anywhere. |
-| Short written comments | Claude (optional) | Only if you add an API key. About a tenth of a penny each. |
+| Short written comments | Claude or Gemini (optional) | Only if you add a key. Claude is about a tenth of a penny each; Gemini has a free tier in some countries. |
 
 Live car telemetry and GPS are F1 TV only, so car positions on the map are estimated from
 when each car last crossed the line and how long its last lap took.
@@ -79,7 +79,7 @@ we've asked too much, it backs off for ten minutes and uses what it already has.
 **standings.py** gets the championship tables and the calendar from Jolpica every half hour
 and works out the points each driver would get if the race finished now.
 
-**notify.py** sends the optional Claude comments and the "What's happening?" reads. A blank
+**notify.py** sends the optional AI comments (Claude, Gemini, or anything OpenAI-style, chosen in config.py) and the "What's happening?" reads. A blank
 or failed answer is reported in the feed rather than shown as an empty message.
 
 **radio.py** fetches team radio clips for your drivers and writes them out with the speech
@@ -98,7 +98,7 @@ locks them out for ten minutes.
 ## Settings and secrets
 
 Everything personal lives in `config.py`: who follows which teams and drivers, their colours,
-the Claude key, and the optional web address for sharing. "1 Set up" makes it by
+the AI key, and the optional web address for sharing. "1 Set up" makes it by
 copying `config.example.py` (or copy it yourself), and it's listed in `.gitignore`, so it never goes to GitHub.
 
 ## Tests
@@ -106,7 +106,7 @@ copying `config.example.py` (or copy it yourself), and it's listed in `.gitignor
 The `tests` folder checks the parts that matter most, using the demo recordings and made-up
 answers instead of the internet: reading F1's feed, the stewards and penalty handling,
 qualifying cut lines, starting a new session, the passcode gate, the history lookups, and
-what happens when Claude sends back a blank answer. They always use `config.example.py`, so
+what happens when the AI sends back a blank answer, for Claude, Gemini and OpenAI-style answers. They always use `config.example.py`, so
 they give the same result on every computer. GitHub runs them on Windows and Linux every time
 code is pushed. To run them yourself:
 

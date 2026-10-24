@@ -318,23 +318,36 @@ something, it may need a fix.
 
 ## AI comments (optional)
 
-Put your Claude API key between the quotes after `ANTHROPIC_API_KEY` in `config.py`, then check it with:
+The AI parts can use Claude or Google's Gemini. Pick one in `config.py` with `AI_PROVIDER`
+(`"claude"` or `"gemini"`) and put its key next to `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`.
+Then check it with:
 
 ```
 py dashboard.py --test-ai
 ```
 
-With a key, pit stops for your drivers, safety cars, red flags and the finish get a one-line
-comment from Claude, shown in grey under the alert. It uses the small Haiku model and costs
-a fraction of a penny per race. Once there's a key, two AI controls appear on the screen. "Comments on/off" switches the AI
-comments off (for the screen and the phone alerts) without touching config.py. "What's
-happening?" asks Claude for a quick two or three sentence read of the session right now (a
-race read, a qualifying read against the cut, or a practice read of times and tyres); there's
-a 20 second gap between presses so a double tap doesn't cost twice. Each read is about a tenth
-of a penny. If Claude doesn't answer, the reason shows in the feed and the black window.
+A Claude key comes from console.anthropic.com and costs about a tenth of a penny per comment,
+using the small Haiku model. A Gemini key comes from aistudio.google.com/apikey; Google offers a
+free tier in some countries (it may not be offered in the UK and Europe, where it can need
+billing), and on the free tier Google may use what's sent to improve its products. Anything that
+speaks the OpenAI style of request, such as a FreeLLMAPI server on your own laptop, works too
+with `AI_PROVIDER = "openai"` and `OPENAI_BASE_URL`.
 
-Keep the key private, like a password, and never put
-config.py on GitHub with the key in it.
+You can also set a back-up with `AI_FALLBACK`, for example Gemini first and Claude if Gemini is
+busy or fails: `AI_PROVIDER = "gemini"` and `AI_FALLBACK = "claude"`, with both keys filled in.
+When the back-up answers, the feed says so ("SESSION READ · via Claude"). `--test-ai` checks
+both.
+
+With a key, pit stops for your drivers, safety cars, red flags and the finish get a one-line
+comment, shown in grey under the alert. Two AI controls appear on the screen. "Comments on/off"
+switches the AI comments off (for the screen and the phone alerts) without touching config.py.
+"What's happening?" asks for a quick two or three sentence read of the session right now (a
+race read, a qualifying read against the cut, or a practice read of times and tyres); there's
+a 20 second gap between presses so a double tap doesn't cost twice. If the AI doesn't answer,
+the reason shows in the feed and the black window.
+
+Keep keys private, like passwords, and never put
+config.py on GitHub with a key in it.
 
 ## Tests
 

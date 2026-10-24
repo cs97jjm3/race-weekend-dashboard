@@ -54,11 +54,27 @@ BATTLE_GAP = 1.0
 # Don't send the same kind of alert about the same driver more often than this
 ALERT_COOLDOWN_SECONDS = 90
 
-# Optional AI comments on pit stops and the end of the race.
-# Leave empty to switch off (everything still works, with plain written alerts).
-# With a key it costs a few pence per race using the small, cheap model.
+# Optional AI comments, "What's happening?" reads and race debriefs.
+# Leave the keys empty to switch it off (everything still works, with plain written alerts).
+# Pick which AI with AI_PROVIDER: "claude" (default), "gemini", or "openai" for anything
+# that speaks the OpenAI style (for example a FreeLLMAPI server on your own laptop).
+AI_PROVIDER = "claude"
+# A back-up to try if the first one fails or is busy (it needs its own key below), e.g. "claude".
+AI_FALLBACK = ""
+
+# Claude: a key from console.anthropic.com. About a tenth of a penny per comment.
 ANTHROPIC_API_KEY = ""
 AI_MODEL = "claude-haiku-5-5"
+
+# Gemini: a key from aistudio.google.com/apikey (starts AQ. or AIza). Google offers a free tier in
+# some countries; on the free tier Google may use what's sent to improve its products.
+GEMINI_API_KEY = ""
+GEMINI_MODEL = "gemini-3.8-flash"
+
+# Anything OpenAI-style: the address, a key if it needs one, and the model name.
+OPENAI_BASE_URL = ""          # e.g. "http://localhost:3001/v1"
+OPENAI_API_KEY = ""
+OPENAI_MODEL = "auto"
 
 # Size of the circle drawn round the circuit on the weather radar, in miles
 WEATHER_RADIUS_MILES = 5

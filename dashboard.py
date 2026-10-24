@@ -24,7 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import config
 import track
 from feed import ArchiveLocked, LiveFeed, Recorder, ReplayFeed, find_session
-from notify import Notifier
+from notify import Notifier, ai_name, ai_ready, provider, ai_model
 from predictions import Predictions
 from radio import Radio
 from race import Race
@@ -78,8 +78,50 @@ def debrief(race, preds):
               % (name, who_follows(race), "\n".join(lines), "\n".join(story), game))
     text = ask_claude(prompt, max_tokens=2000)
     with race.lock:
-        race.emit(text, title="RACE DEBRIEF", kind="debrief", send=False)
+        race.emit(text, title="RACE DEBRIEF" + via(), kind="debrief", send=False)
     return text
+
+
+def check_ai(who, backup=False):
+    """--test-ai: one hello to one AI, with a plain explanation if it fails."""
+    from notify import _ask, _key, _ready
+    setting = {"gemini": "GEMINI_API_KEY", "openai": "OPENAI_API_KEY"}.get(who, "ANTHROPIC_API_KEY")
+    head = "%s (%s, model %s)" % (ai_name(who), "back-up, AI_FALLBACK" if backup else "main, AI_PROVIDER", ai_model(who))
+    if not _ready(who):
+        return "%s: no key yet. Put it between the quotes after %s in config.py." % (head, setting)
+    from notify import Busy
+    try:
+        reply = _ask(who, "In one short sentence, say hello to James and Ed and wish them a good race weekend.", 1000, 30)
+    except Busy as e:
+        return (head + ": the key is fine: %s accepted it, but it's busy right now (%s).\n"
+                         "Try again in a few minutes%s.\n"
+                         % (ai_name(who), e, ", or pick another model with GEMINI_MODEL in config.py, e.g. \"gemini-3.5-flash-lite\""
+                            if who == "gemini" else ""))
+    except Exception as e:
+        k = _key(who)
+        starts = {"gemini": "AQ. or AIza", "openai": "(depends on the service)"}.get(who, "sk-ant-api")
+        where = {"gemini": "aistudio.google.com/apikey", "openai": "the service you're using"}.get(who, "the Claude Console")
+        checks = ["Length: %d characters" % len(k),
+                  "Starts with: %s (should be %s)" % (k[:4], starts),
+                  "Ends with: ...%s (compare with the key's ending shown at %s)" % (k[-4:], where)]
+        if " " in k:
+            checks.append("Has a space in the middle: the paste has gone wrong somewhere")
+        if "..." in k or "your key" in k.lower():
+            checks.append("Still has the example text in it")
+        hint = ""
+        if who == "gemini" and ("location" in str(e).lower() or "region" in str(e).lower() or "billing" in str(e).lower()):
+            hint = ("Google says the free tier isn't available here, or wants billing turned on. In the UK the\n"
+                    "Gemini API may only be offered as a paid service. Switch back with AI_PROVIDER = \"claude\".\n")
+        return (head + ": the key didn't work: %s\n\nWhat I can see of %s in config.py:\n  %s\n\n%s"
+                         "401 or 403 usually means the key isn't recognised; make a fresh one at %s and paste it again.\n"
+                         % (e, setting, "\n  ".join(checks), hint, where))
+    return "%s: the key works. %s says: %s" % (head, ai_name(who), reply)
+
+
+def via():
+    """' · via Claude' on the title when the back-up AI answered instead of the usual one."""
+    from notify import last_used, used_backup
+    return " · via %s" % ai_name(last_used[0]) if used_backup() else ""
 
 
 def make_handler(race, radio, preds, gate):
@@ -87,15 +129,15 @@ def make_handler(race, radio, preds, gate):
         """Claude didn't answer: say so in the cmd window and in the feed, not just on the button."""
         log.warning("'What's happening?' failed: %s", e)
         with race.lock:
-            race.emit("Claude didn't answer this time (%s). Try again in a minute." % e,
+            race.emit("%s didn't answer this time (%s). Try again in a minute." % (ai_name(), e),
                       title="AI", kind="info", send=False)
-        return {"error": "Claude didn't answer"}
+        return {"error": "%s didn't answer" % ai_name()}
 
     def ask_now():
         """The 'What's happening?' button: a short read of the race from Claude.
         After the chequered flag it writes the race debrief instead."""
-        if not config.ANTHROPIC_API_KEY.strip():
-            return {"error": "No Claude key in config.py"}
+        if not ai_ready():
+            return {"error": "No AI key in config.py"}
         if not race.notify.enabled:
             return {"error": "AI is switched off"}
         wait = ASK_GAP_SECONDS - (time.time() - _last_ask[0])
@@ -109,7 +151,7 @@ def make_handler(race, radio, preds, gate):
                 debrief(race, preds)
                 return {"ok": True}
             except Exception as e:
-                return {"error": "Claude didn't answer: %s" % e}
+                return {"error": "%s didn't answer: %s" % (ai_name(), e)}
         people = who_follows(race)
         if race.is_quali():
             prompt = ("You're a calm, plain-spoken F1 race engineer on the pit wall with two fans. %s. "
@@ -123,7 +165,7 @@ def make_handler(race, radio, preds, gate):
             except Exception as e:
                 return failed(e)
             with race.lock:
-                race.emit(reply, title="QUALI READ", kind="ai", send=False)
+                race.emit(reply, title="QUALI READ" + via(), kind="ai", send=False)
             return {"ok": True}
         prompt = ("You're a calm, plain-spoken F1 race engineer on the pit wall with two fans. %s. "
                   "Using ONLY the timing data below, give a quick read of the session right now in 2 or 3 short "
@@ -136,7 +178,7 @@ def make_handler(race, radio, preds, gate):
         except Exception as e:
             return failed(e)
         with race.lock:
-            race.emit(reply, title="RACE READ" if race.is_race() else "SESSION READ", kind="ai", send=False)
+            race.emit(reply, title=("RACE READ" if race.is_race() else "SESSION READ") + via(), kind="ai", send=False)
         return {"ok": True}
 
 
@@ -211,7 +253,7 @@ def make_handler(race, radio, preds, gate):
             if self.path == "/ai/toggle" and gate.is_remote(self):
                 return self._json({"error": "Only James can switch that"}, 403)
             if self.path == "/ai/toggle":
-                if config.ANTHROPIC_API_KEY.strip():
+                if ai_ready():
                     race.notify.enabled = not race.notify.enabled
                     log.info("AI comments %s", "on" if race.notify.enabled else "off")
                 return self._json({"on": race.notify.enabled})
@@ -305,7 +347,7 @@ def main():
     ap.add_argument("--demo", nargs="?", const="race", choices=["race", "quali"],
                     help="play a made-up race (or 'quali' for qualifying) to try the screen out")
     ap.add_argument("--no-record", action="store_true", help="don't save live sessions to the recordings folder")
-    ap.add_argument("--test-ai", action="store_true", help="check the Claude API key works, then exit")
+    ap.add_argument("--test-ai", action="store_true", help="check the AI key in config.py works (Claude or Gemini), then exit")
     ap.add_argument("--test-radio", nargs="?", const="sample", metavar="AUDIO_FILE",
                     help="check radio transcription works, on a sample clip or your own audio file")
     ap.add_argument("--share", nargs="?", const="new", metavar="PASSCODE",
@@ -331,28 +373,11 @@ def main():
         raise SystemExit("\nIt works (%.1f seconds). Heard:\n  \"%s\"\n" % (time.time() - t0, out))
 
     if args.test_ai:
-        from notify import ask_claude
-        if not config.ANTHROPIC_API_KEY:
-            raise SystemExit("\nNo key yet. Put it between the quotes after ANTHROPIC_API_KEY in config.py.\n")
-        try:
-            reply = ask_claude("In one short sentence, say hello to James and Ed and wish them a good race weekend.")
-        except Exception as e:
-            k = config.ANTHROPIC_API_KEY
-            checks = []
-            checks.append("Length: %d characters (a real key is usually a little over 100)" % len(k.strip()))
-            checks.append("Starts with: %s (should be sk-ant-api)" % k.strip()[:10])
-            checks.append("Ends with: ...%s (compare with the key's ending shown in the Console)" % k.strip()[-4:])
-            if k != k.strip():
-                checks.append("Has spaces or line breaks at the start or end (now ignored, but worth tidying)")
-            if " " in k.strip():
-                checks.append("Has a space in the middle: the paste has gone wrong somewhere")
-            if "..." in k or "your key" in k.lower():
-                checks.append("Still has the example text in it")
-            raise SystemExit("\nThe key didn't work: %s\n\nWhat I can see of the key in config.py:\n  %s\n\n"
-                             "401 means Anthropic doesn't recognise it. If it looks right above, make a fresh key in\n"
-                             "the Console and paste it again. A message about credit means the account needs topping up.\n"
-                             % (e, "\n  ".join(checks)))
-        raise SystemExit("\nThe key works. Claude says: %s\n" % reply)
+        from notify import fallback
+        lines = []
+        for who in [provider()] + ([fallback()] if fallback() else []):
+            lines.append(check_ai(who, backup=who != provider()))
+        raise SystemExit("\n" + "\n".join(lines) + "\n")
 
     race = None
 
@@ -444,7 +469,7 @@ def main():
     preds = Predictions(race)
 
     def after_finish(order):
-        if config.ANTHROPIC_API_KEY.strip() and notifier.enabled:
+        if ai_ready() and notifier.enabled:
             def go():
                 try:
                     debrief(race, preds)
