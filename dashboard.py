@@ -241,6 +241,8 @@ def make_handler(race, radio, preds, gate):
                 try:
                     if q.path == "/history/race":
                         data = history.race(int((args.get("season") or ["0"])[0]), int((args.get("round") or ["0"])[0]))
+                    elif q.path == "/history/team":
+                        data = history.team(re.sub(r"[^A-Za-z]", "", (args.get("code") or [""])[0])[:3], day)
                     elif q.path == "/history/driver":
                         data = history.driver(re.sub(r"[^A-Za-z]", "", (args.get("code") or [""])[0])[:3], day)
                     else:
@@ -405,6 +407,21 @@ def main():
     radio = Radio(race)
     race.radio_hook = radio
     race.standings = Standings()
+
+    def warm_history():
+        """Once the driver list has arrived, quietly look up everyone the family follows."""
+        for _ in range(60):
+            if race.drivers():
+                break
+            time.sleep(5)
+        with race.lock:
+            codes = [d.get("Tla") for n, d in race.drivers().items() if d.get("Tla") and race.watchers(n)]
+        if not codes:
+            codes = sorted({c for p in config.PEOPLE.values() for c in p.get("drivers", [])})
+        day = race.session().get("StartDate") or time.strftime("%Y-%m-%d")
+        history.warm_up(codes, day)
+    if not getattr(args, "no_history", False):
+        threading.Thread(target=warm_history, daemon=True).start()
     preds = Predictions(race)
 
     def after_finish(order):

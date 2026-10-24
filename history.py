@@ -41,12 +41,27 @@ def _stale(fn):
         return None
 
 
+NEW_RESULTS = "new-results"     # a ttl meaning "keep until a new race or qualifying result appears"
+_pace = threading.local()        # the background warm-up goes slower than clicks
+
+
+def _results_tag():
+    """Changes whenever Jolpica gets a new race or qualifying result this season.
+    Checked at most once an hour, two tiny lookups."""
+    return "%s-%s" % (_total("current/results.json", HOUR), _total("current/qualifying.json", HOUR))
+
+
 def _get(path, ttl, **params):
     """One Jolpica call, from the cache if it's fresh enough."""
     params.setdefault("limit", 100)
     url = BASE + path + "?" + urllib.parse.urlencode(params)
+    key = url
+    if ttl == NEW_RESULTS:
+        # career numbers and this season's results only change after a session,
+        # so keep them until Jolpica has something new, rather than on a timer
+        key, ttl = url + "#" + _results_tag(), 30 * 24 * HOUR
     os.makedirs(CACHE, exist_ok=True)
-    fn = os.path.join(CACHE, hashlib.sha1(url.encode()).hexdigest()[:20] + ".json")
+    fn = os.path.join(CACHE, hashlib.sha1(key.encode()).hexdigest()[:20] + ".json")
     try:
         if time.time() - os.path.getmtime(fn) < ttl:
             with open(fn, encoding="utf-8") as f:
@@ -59,7 +74,7 @@ def _get(path, ttl, **params):
             return stale
         raise TooBusy()
     with _gap_lock:                      # no more than about two calls a second
-        wait = 0.6 - (time.time() - _last_call[0])
+        wait = getattr(_pace, "gap", 0.6) - (time.time() - _last_call[0])
         if wait > 0:
             time.sleep(wait)
         _last_call[0] = time.time()
@@ -112,6 +127,29 @@ def _champion(year):
         return CHAMPIONS[year]
     lists = _get("%d/driverStandings/1.json" % year, 365 * 24 * HOUR)["MRData"]["StandingsTable"]["StandingsLists"]
     return lists[0]["DriverStandings"][0]["Driver"]["driverId"] if lists else None
+
+# Constructors' champions by year (Jolpica team ids), for the same reason.
+TEAM_CHAMPIONS = {
+    1958: "vanwall", 1959: "cooper", 1960: "cooper", 1961: "ferrari", 1962: "brm", 1963: "team_lotus",
+    1964: "ferrari", 1965: "team_lotus", 1966: "brabham", 1967: "brabham", 1968: "team_lotus", 1969: "matra",
+    1970: "team_lotus", 1971: "tyrrell", 1972: "team_lotus", 1973: "team_lotus", 1974: "mclaren",
+    1975: "ferrari", 1976: "ferrari", 1977: "ferrari", 1978: "team_lotus", 1979: "ferrari", 1980: "williams",
+    1981: "williams", 1982: "ferrari", 1983: "ferrari", 1984: "mclaren", 1985: "mclaren", 1986: "williams",
+    1987: "williams", 1988: "mclaren", 1989: "mclaren", 1990: "mclaren", 1991: "mclaren", 1992: "williams",
+    1993: "williams", 1994: "williams", 1995: "benetton", 1996: "williams", 1997: "williams", 1998: "mclaren",
+    1999: "ferrari", 2000: "ferrari", 2001: "ferrari", 2002: "ferrari", 2003: "ferrari", 2004: "ferrari",
+    2005: "renault", 2006: "renault", 2007: "ferrari", 2008: "ferrari", 2009: "brawn", 2010: "red_bull",
+    2011: "red_bull", 2012: "red_bull", 2013: "red_bull", 2014: "mercedes", 2015: "mercedes", 2016: "mercedes",
+    2017: "mercedes", 2018: "mercedes", 2019: "mercedes", 2020: "mercedes", 2021: "mercedes", 2022: "red_bull",
+    2023: "red_bull", 2024: "mclaren", 2025: "mclaren",
+}
+
+
+def _team_champion(year):
+    if year in TEAM_CHAMPIONS:
+        return TEAM_CHAMPIONS[year]
+    lists = _get("%d/constructorStandings/1.json" % year, 365 * 24 * HOUR)["MRData"]["StandingsTable"]["StandingsLists"]
+    return lists[0]["ConstructorStandings"][0]["Constructor"]["constructorId"] if lists else None
 
 
 def _all_races(path, ttl):
@@ -189,10 +227,10 @@ def driver(code, session_date=None):
     did = who["driverId"]
     p = "drivers/%s/" % did
     career = {
-        "races": _total(p + "results.json", 12 * HOUR),
-        "wins": _total(p + "results/1.json", 12 * HOUR),
-        "podiums": sum(_total(p + "results/%d.json" % n, 12 * HOUR) for n in (1, 2, 3)),
-        "poles": _total(p + "qualifying/1.json", 12 * HOUR),
+        "races": _total(p + "results.json", NEW_RESULTS),
+        "wins": _total(p + "results/1.json", NEW_RESULTS),
+        "podiums": sum(_total(p + "results/%d.json" % n, NEW_RESULTS) for n in (1, 2, 3)),
+        "poles": _total(p + "qualifying/1.json", NEW_RESULTS),
     }
     try:
         seasons = [x["season"] for x in _get(p + "seasons.json", 24 * HOUR)["MRData"]["SeasonTable"]["Seasons"]]
@@ -205,7 +243,7 @@ def driver(code, session_date=None):
 
     # this season, race by race
     season, team = [], None
-    for r in _all_races("current/drivers/%s/results.json" % did, 6 * HOUR):
+    for r in _all_races("current/drivers/%s/results.json" % did, NEW_RESULTS):
         res = (r.get("Results") or [{}])[0]
         team = res.get("Constructor") or team
         season.append({"round": _num(r["round"]), "year": r["season"], "race": r["raceName"].replace(" Grand Prix", ""),
@@ -221,7 +259,7 @@ def driver(code, session_date=None):
         except Exception as e:
             log.info("Couldn't work out the circuit (%s)", e)
     if circuit:
-        for r in _all_races("circuits/%s/drivers/%s/results.json" % (circuit["circuitId"], did), 12 * HOUR):
+        for r in _all_races("circuits/%s/drivers/%s/results.json" % (circuit["circuitId"], did), NEW_RESULTS):
             res = (r.get("Results") or [{}])[0]
             here.append({"year": r["season"], "round": _num(r["round"]), "label": _short(res), "pos": _num(res.get("position")),
                          "grid": _num(res.get("grid")), "team": (res.get("Constructor") or {}).get("name", "")})
@@ -233,7 +271,7 @@ def driver(code, session_date=None):
         tid = team["constructorId"]
         ahead = {"race": [0, 0], "quali": [0, 0], "points": [0.0, 0.0]}
         mate_name = None
-        for r in _all_races("current/constructors/%s/results.json" % tid, 6 * HOUR):
+        for r in _all_races("current/constructors/%s/results.json" % tid, NEW_RESULTS):
             rows = {x["Driver"]["driverId"]: x for x in r.get("Results", [])}
             if did not in rows or len(rows) < 2:
                 continue
@@ -244,7 +282,7 @@ def driver(code, session_date=None):
             ahead["points"][1] += float(b.get("points") or 0)
             pa, pb = _num(a.get("position"), 99), _num(b.get("position"), 99)
             ahead["race"][0 if pa < pb else 1] += 1
-        for r in _all_races("current/constructors/%s/qualifying.json" % tid, 6 * HOUR):
+        for r in _all_races("current/constructors/%s/qualifying.json" % tid, NEW_RESULTS):
             rows = {x["Driver"]["driverId"]: _num(x.get("position"), 99) for x in r.get("QualifyingResults", [])}
             if did in rows and len(rows) >= 2:
                 other = min((v for k, v in rows.items() if k != did), default=99)
@@ -269,7 +307,7 @@ def circuit(session_date):
     c = rw["Circuit"]
     cid = c["circuitId"]
     winners = []
-    for r in _all_races("circuits/%s/results/1.json" % cid, 12 * HOUR):
+    for r in _all_races("circuits/%s/results/1.json" % cid, NEW_RESULTS):
         res = (r.get("Results") or [{}])[0]
         d = res.get("Driver") or {}
         winners.append({"year": r["season"], "round": _num(r["round"]), "race": r["raceName"], "driver": d.get("familyName", ""),
@@ -277,7 +315,7 @@ def circuit(session_date):
                         "grid": _num(res.get("grid"))})
     poles = {}
     try:
-        for r in _all_races("circuits/%s/qualifying/1.json" % cid, 12 * HOUR):
+        for r in _all_races("circuits/%s/qualifying/1.json" % cid, NEW_RESULTS):
             q = (r.get("QualifyingResults") or [{}])[0]
             poles[r["season"]] = (q.get("Driver") or {}).get("familyName", "")
     except Exception as e:
@@ -342,3 +380,109 @@ def race(season, rnd):
             "results": rows, "quali": quali, "fastest": fastest,
             "gainer": gainer if gainer and gainer["gained"] > 0 else None,
             "retired": len(out), "laps": rows[0]["laps"] if rows else None}
+
+
+def team(code, session_date=None):
+    """The team a driver (by their three-letter code) drives for this season."""
+    who = driver_id(code)
+    if not who:
+        return {"error": "Couldn't find %s in this season's drivers" % code}
+    cons = _get("current/drivers/%s/constructors.json" % who["driverId"], 24 * HOUR)["MRData"]["ConstructorTable"]["Constructors"]
+    if not cons:
+        return {"error": "Couldn't work out %s's team" % code}
+    t = cons[-1]
+    tid = t["constructorId"]
+    p = "constructors/%s/" % tid
+    this_year = int(time.strftime("%Y"))
+    career = {
+        "wins": _total(p + "results/1.json", NEW_RESULTS),
+        "podiums": sum(_total(p + "results/%d.json" % n, NEW_RESULTS) for n in (1, 2, 3)),
+        "poles": _total(p + "qualifying/1.json", NEW_RESULTS),
+    }
+    try:
+        seasons = [x["season"] for x in _get(p + "seasons.json", 24 * HOUR)["MRData"]["SeasonTable"]["Seasons"]]
+        career["seasons"] = len(seasons)
+        career["firstYear"] = seasons[0] if seasons else ""
+        career["titles"] = sum(1 for y in seasons if int(y) < this_year and _team_champion(int(y)) == tid)
+    except Exception as e:
+        log.info("Couldn't count titles for %s (%s)", tid, e)
+        career["titles"] = "?"
+
+    # this season, both cars race by race
+    season, drivers = [], {}
+    for r in _all_races("current/constructors/%s/results.json" % tid, NEW_RESULTS):
+        cars = []
+        for x in r.get("Results", []):
+            d = x.get("Driver") or {}
+            code_ = d.get("code", "")
+            drivers.setdefault(code_, {"code": code_, "name": "%s %s" % (d.get("givenName", ""), d.get("familyName", "")),
+                                       "points": 0.0, "best": None})
+            pts = float(x.get("points") or 0)
+            drivers[code_]["points"] += pts
+            pos = _num(x.get("position"))
+            if _short(x).startswith("P") and (drivers[code_]["best"] is None or pos < drivers[code_]["best"]):
+                drivers[code_]["best"] = pos
+            cars.append({"code": code_, "label": _short(x), "pos": pos, "points": pts})
+        cars.sort(key=lambda c: c["pos"] or 99)
+        season.append({"round": _num(r["round"]), "year": r["season"], "race": r["raceName"].replace(" Grand Prix", ""),
+                       "cars": cars, "points": sum(c["points"] for c in cars)})
+
+    # where they stand this year
+    standing = None
+    try:
+        lists = _get("current/constructorStandings.json", NEW_RESULTS)["MRData"]["StandingsTable"]["StandingsLists"]
+        for x in (lists[0]["ConstructorStandings"] if lists else []):
+            if x["Constructor"]["constructorId"] == tid:
+                standing = {"pos": _num(x.get("position")), "points": float(x.get("points") or 0), "wins": _num(x.get("wins"))}
+    except Exception as e:
+        log.info("No constructor standings (%s)", e)
+
+    # best finish at this circuit each year
+    here, circuit = [], None
+    if session_date:
+        try:
+            rw = circuit_for(session_date)
+            circuit = rw and rw["Circuit"]
+        except Exception as e:
+            log.info("Couldn't work out the circuit (%s)", e)
+    if circuit:
+        for r in _all_races("circuits/%s/constructors/%s/results.json" % (circuit["circuitId"], tid), NEW_RESULTS):
+            res = sorted(r.get("Results", []), key=lambda x: _num(x.get("position"), 99))
+            if not res:
+                continue
+            best = res[0]
+            here.append({"year": r["season"], "round": _num(r["round"]), "label": _short(best), "pos": _num(best.get("position")),
+                         "who": (best.get("Driver") or {}).get("familyName", "")})
+        here.reverse()
+
+    import config
+    fans = [n for n, pr in config.PEOPLE.items()
+            if any(x and x.lower() in t.get("name", "").lower() for x in pr.get("teams", []))]
+    return {"id": tid, "name": t.get("name", ""), "nationality": t.get("nationality", ""), "fans": fans,
+            "career": career, "season": season, "drivers": sorted(drivers.values(), key=lambda d: -d["points"]),
+            "standing": standing, "here": here, "circuit": circuit and circuit.get("circuitName")}
+
+
+def warm_up(codes, session_date, gap=2.0):
+    """Quietly look up the family's drivers, their teams and the track in the background,
+    one lookup every couple of seconds, so the first click opens straight away."""
+    _pace.gap = gap
+    done_teams = set()
+    n0 = len(os.listdir(CACHE)) if os.path.isdir(CACHE) else 0
+    for code in codes:
+        try:
+            d = driver(code, session_date)
+            if d.get("team") and d["team"] not in done_teams:
+                done_teams.add(d["team"])
+                team(code, session_date)
+        except TooBusy:
+            log.info("History warm-up paused: Jolpica is busy")
+            return
+        except Exception as e:
+            log.info("History warm-up skipped %s (%s)", code, e)
+    try:
+        circuit(session_date)
+    except Exception as e:
+        log.info("History warm-up skipped the track (%s)", e)
+    n1 = len(os.listdir(CACHE)) if os.path.isdir(CACHE) else 0
+    log.info("Driver and team history ready for %s (%d new lookups)", ", ".join(codes), n1 - n0)

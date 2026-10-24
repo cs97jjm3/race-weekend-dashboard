@@ -20,6 +20,8 @@ REPLAY_TOPICS = [
 STATIC = "https://livetiming.formula1.com/static/"
 UA = {"User-Agent": "race-weekend-dashboard/1.0"}
 log = logging.getLogger("dashboard")
+# the connection library prints a long error each time we hang up on purpose; keep it quiet
+logging.getLogger("SignalRCoreClient").setLevel(logging.CRITICAL)
 
 
 class ArchiveLocked(Exception):
@@ -121,18 +123,29 @@ class LiveFeed:
             if time.time() - t0 > 20:
                 raise RuntimeError("Timed out connecting to F1 live timing")
             time.sleep(0.1)
-        self.on_status("Connected to F1 live timing")
+        if not getattr(self, "_quiet", False):
+            self.on_status("Connected to F1 live timing")
         self.conn.send("Subscribe", [LIVE_TOPICS], on_invocation=self._snapshot)
         self.last_msg = time.time()
 
     def run(self):
+        quiet_said = False
         while True:
             try:
                 self._connect()
-                # Heartbeat arrives regularly during a session; reconnect if it goes quiet
+                # Heartbeat arrives regularly during a session; reconnect if it goes quiet.
+                # Between sessions F1 sends nothing at all, so this happens every couple of
+                # minutes; only mention it once, rather than every time.
+                start = self.last_msg
                 while time.time() - self.last_msg < 120:
                     time.sleep(2)
-                self.on_status("No data for 2 minutes, reconnecting")
+                if self.last_msg - start > 5:
+                    quiet_said = False     # something came through, so say it again next time
+                if not quiet_said:
+                    log.info("No data from F1 for 2 minutes (normal between sessions). "
+                             "Checking the connection every couple of minutes until something starts.")
+                    quiet_said = True
+                self._quiet = quiet_said
             except Exception as e:
                 self.on_status("Live timing problem: %s. Retrying in 15s" % e)
             try:

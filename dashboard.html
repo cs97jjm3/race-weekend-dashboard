@@ -242,6 +242,11 @@
   .wtable tr.this td { background: rgba(200, 240, 49, .08); }
   .wtable td.p { font-weight: 700; width: 46px; }
   .clicknote { color: var(--dim); font-size: 14px; margin-top: 6px; }
+  #rows .team { cursor: pointer; } #rows .team:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+  .seas .stack { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; border-radius: 3px 3px 0 0; overflow: hidden; min-height: 4px; background: #33404d; }
+  .seas .stack i { display: block; width: 100%; }
+  .tdrivers { display: flex; gap: 12px; flex-wrap: wrap; }
+  .tdrivers .tile { min-width: 220px; }
   .histnote { color: var(--dim); font-size: 14px; margin-top: 18px; }
   /* sectors and qualifying */
   .secs { display: inline-flex; gap: 3px; vertical-align: middle; }
@@ -802,7 +807,7 @@ function render(s) {
     return `<tr class="${cls}" data-tla="${esc(r.tla)}" data-col="${esc(r.colour)}" title="Click for ${esc(r.name)}'s history">
       <td class="pos">${r.out ? "OUT" : (r.pos < 99 ? r.pos : "")}</td>
       <td><div class="drv"><div class="stripe" style="background:${esc(r.colour)}"></div>
-        <span class="tla">${esc(r.tla)}</span>${(r.pens || []).map(p => `<span class="pen" title="Penalty">${esc(p)}</span>`).join("")}<span class="team">${esc(r.team)}</span></div></td>
+        <span class="tla">${esc(r.tla)}</span>${(r.pens || []).map(p => `<span class="pen" title="Penalty">${esc(p)}</span>`).join("")}<span class="team" title="Click for ${esc(r.team)}'s history">${esc(r.team)}</span></div></td>
       ${q ? `<td class="num">${esc(r.partBest || "")}</td>
       <td class="num">${r.knockedOut ? `<span style="color:var(--dim)">out in Q${r.pos > (q.entries[1] || 99) ? 1 : 2}</span>` : (r.pos === 1 ? "" : esc(r.gap))}</td>
       <td class="num">${q.cutAfter && r.toCut !== null && r.toCut !== undefined && !r.knockedOut
@@ -1367,6 +1372,49 @@ async function openRace(season, round, back) {
   html += `<div class="histnote">From Jolpica (the old Ergast). The driver you came from is shaded; drivers someone here follows are in lime.</div>`;
   hb.innerHTML = html;
 }
+
+async function openTeam(code, colour) {
+  const me = ++histToken; histBack = [];
+  hm.classList.add("open"); hm.querySelector(".sheet").style.setProperty("--tone", colour || "var(--accent)");
+  document.getElementById("histtitle").textContent = "Team"; document.getElementById("histsub").textContent = "";
+  hb.innerHTML = `<div class="loading">Looking up the team's record…<br><small>The first time can take up to 10 seconds. After that it's saved on the laptop.</small></div>`;
+  let d;
+  try { d = await (await fetch("/history/team?code=" + encodeURIComponent(code))).json(); }
+  catch (e) { d = {error: "Couldn't reach the dashboard program"}; }
+  if (me !== histToken) return;
+  if (d.error) { hb.innerHTML = `<div class="loading">${esc(d.error)}</div>`; return; }
+  const c = d.career, st = d.standing;
+  document.getElementById("histsub").textContent = d.nationality;
+  const fans = d.fans || [];
+  let html = `<div class="hhero"><div><h3>${esc(d.name)}</h3><div class="sub">${c.firstYear ? "In F1 since " + esc(c.firstYear) : ""}${fans.length ? " · followed by " + esc(fans.join(" and ")) : ""}</div></div></div>`;
+  html += `<div class="tiles">${st ? tile("P" + st.pos, "This year, " + (st.points % 1 ? st.points.toFixed(1) : st.points) + " pts", true) : ""}${tile(c.seasons ?? "–", "Seasons")}
+    ${tile(c.wins, "Wins", c.wins > 0)}${tile(c.podiums, "Podium finishes")}${tile(c.poles, "Poles")}${tile(c.titles, c.titles === 1 ? "Title" : "Titles", c.titles > 0)}</div>`;
+  if (d.drivers.length) {
+    html += `<div class="hsec"><h4>Drivers this season</h4><div class="tdrivers">` + d.drivers.map(x =>
+      `<div class="tile"><b class="word">${esc(x.name)}</b><span>${x.points % 1 ? x.points.toFixed(1) : x.points} pts · best ${x.best ? "P" + x.best : "–"}</span></div>`).join("") + `</div></div>`;
+  }
+  if (d.season.length) {
+    const top = Math.max(26, ...d.season.map(r => r.points));
+    const codes = d.drivers.map(x => x.code);
+    const shade = i => i === 0 ? "var(--tone, var(--accent))" : "color-mix(in srgb, var(--tone, var(--accent)) 45%, #0b0d10)";
+    const total = d.season.reduce((a, r) => a + r.points, 0);
+    html += `<div class="hsec"><h4>This season, points race by race · ${total % 1 ? total.toFixed(1) : total} points</h4><div class="seas">` + d.season.map(r => {
+      const tip = r.cars.map(x => `${x.code} ${x.label}`).join(", ");
+      const segs = codes.map((cd, i) => { const car = r.cars.find(x => x.code === cd); return car && car.points ? `<i style="height:${100 * car.points / r.points}%;background:${shade(i)}"></i>` : ""; }).join("");
+      return `<div class="c" data-season="${esc(r.year)}" data-round="${r.round}" title="${esc(r.race)}: ${esc(tip)}, ${r.points} pts">
+        <span class="p">${r.points ? (r.points % 1 ? r.points.toFixed(1) : r.points) : "0"}</span>
+        <div class="stack" style="height:${Math.max(3, 70 * r.points / top)}%">${segs}</div><span class="r">${esc(r.race.slice(0, 3))}</span></div>`;
+    }).join("") + `</div><div class="seaskey">` + d.drivers.map((x, i) => `<span><i style="background:${shade(i)}"></i>${esc(x.name.split(" ").slice(-1)[0])}</span>`).join("")
+      + `</div><div class="clicknote">Click a race for the full result.</div></div>`;
+  }
+  if (d.circuit) {
+    html += `<div class="hsec"><h4>Best finish at ${esc(d.circuit)}</h4>` + (d.here.length
+      ? `<div class="chips">` + d.here.map(r => `<div class="chip ${cls4(r.label, r.pos)}" data-season="${esc(r.year)}" data-round="${r.round}" title="${esc(r.who)}"><b>${esc(r.label)}</b><span>${esc(r.year)}</span></div>`).join("") + `</div>`
+      : `<div class="histnote">First race here.</div>`) + `</div>`;
+  }
+  html += `<div class="histnote">Results from Jolpica (the old Ergast). Grand Prix only. Titles and wins count the team under its current name in the records, so earlier names (e.g. Toleman, Benetton, Renault before Alpine) aren't included.</div>`;
+  hb.innerHTML = html;
+}
 async function openCircuit() {
   const me = ++histToken; histBack = [];
   hm.classList.add("open"); hm.querySelector(".sheet").style.setProperty("--tone", "var(--accent)");
@@ -1390,7 +1438,9 @@ async function openCircuit() {
 }
 document.getElementById("rows").addEventListener("click", ev => {
   const tr = ev.target.closest("tr[data-tla]");
-  if (tr && tr.dataset.tla) openDriver(tr.dataset.tla, tr.dataset.col);
+  if (!tr || !tr.dataset.tla) return;
+  if (ev.target.closest(".team")) openTeam(tr.dataset.tla, tr.dataset.col);
+  else openDriver(tr.dataset.tla, tr.dataset.col);
 });
 document.getElementById("gp").title = "Click for the history of this race";
 document.getElementById("gp").addEventListener("click", openCircuit);
