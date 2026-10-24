@@ -88,6 +88,10 @@ which session is next, and Open-Meteo's forecast for the circuit at its start ti
 saves what the screen shows every second, and adds a small script (`demo-shim.js`) that answers
 the page's requests from those snapshots instead of from the dashboard program.
 
+**fia.py** reads the FIA's documents page five minutes before each session. Each new stewards'
+decision PDF is opened once with pypdf and its labelled parts (Decision, Fact, Reason) are put
+in the feed under the title, with the link to the full document.
+
 **standings.py** gets the championship tables and the calendar from Jolpica every half hour
 and works out the points each driver would get if the race finished now.
 

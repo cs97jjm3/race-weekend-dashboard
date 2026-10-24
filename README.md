@@ -200,8 +200,12 @@ Lots of stewards' decisions, especially grid penalties after qualifying, are onl
 documents on the FIA's website and never appear in the timing. Five minutes before each session
 (and once when the dashboard starts) it reads the FIA's list of documents for this event and puts
 any new decisions, infringements, summonses and penalties in the feed in red, with a "Read the
-document (PDF)" button. Car numbers get the driver's name added. To see what's there right now:
-`py dashboard.py --check-fia`.
+document (PDF)" button. Car numbers get the driver's name added. It also opens each new
+decision once and shows what it says underneath: the decision itself, what happened and the
+stewards' reason, so you don't have to open the PDF to find out it's a 20-place grid drop.
+Reading the PDFs needs the free pypdf package, which `py -m pip install -r requirements.txt`
+installs; without it you just get the link. To see what's there right now, and what the newest
+three decisions say: `py dashboard.py --check-fia`.
 
 ## Driver, team and race history
 

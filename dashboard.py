@@ -412,7 +412,17 @@ def main():
             w["name"], len(docs), len([1 for u, t in docs if fia.is_decision(t)])))
         for u, t in docs:
             print("  %s %s" % ("*" if fia.is_decision(t) else " ", t))
-        raise SystemExit("\n(* = would go in the feed)\n")
+        print("\n(* = would go in the feed)\n\nWhat the newest three decisions say:")
+        for u, t in [d for d in docs if fia.is_decision(d[1])][:3]:
+            try:
+                fields = fia.parse_decision(fia.pdf_text(fia.Checker._fetch_pdf(u)))
+            except Exception as e:
+                fields = {}
+                print("  (couldn't open it: %s)" % e)
+            print("\n  " + t)
+            for line in fia.summary(fields) or ["(no decision found in the PDF, or pypdf isn't installed: py -m pip install pypdf)"]:
+                print("    " + line)
+        raise SystemExit("")
 
     if args.test_ai:
         from notify import fallback
@@ -495,12 +505,19 @@ def main():
     race.standings = Standings()
     race.commentator = commentary.Commentator(race, lambda t, text: race.say(t, text, auto=True))
 
-    def fia_doc(title, url):
+    def fia_doc(title, url, info=None):
         text, who = fia.car_names(race, title)
         kind = title.split(" - ")[0].upper()
+        info = info or {}
+        n = fia.driver_number(info.get("fields") or {})
         with race.lock:
+            if n and n in race.drivers():
+                who = set(who) | set(race.watchers(n))
+            extra = {"link": url}
+            if info.get("lines"):
+                extra["detail"] = info["lines"]
             race.emit(text, who=tuple(who) if who else EVERYONE, title="FIA DOCUMENT · " + kind,
-                      kind="stewards", send=bool(who), extra={"link": url})
+                      kind="stewards", send=bool(who), extra=extra)
     race.fia = fia.Checker(race, fia_doc)
 
     def warm_history():

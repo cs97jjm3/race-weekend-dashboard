@@ -187,6 +187,7 @@
   .ev.stewards { border-color: var(--red); background: #1b1013; }
   .ev.stewards .title { color: #ff6b81; }
   .ev .doclink { display: inline-block; margin-top: 8px; color: #ff6b81; font-size: 15px; border: 1px solid #5a2a33; border-radius: 4px; padding: 2px 10px; text-decoration: none; }
+  .ev .docline { margin-top: 6px; font-size: 16px; line-height: 1.4; color: var(--ink); }
   .ev .doclink:hover { border-color: #ff6b81; }
   .pen { margin-left: 6px; font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 600; color: #0b0d10;
          background: #f5f5f5; border-radius: 3px; padding: 0 4px; vertical-align: middle; }
@@ -928,6 +929,7 @@ function render(s) {
       <div class="text">${esc(e.text)}</div>
       ${e.ai ? `<div class="ai">${esc(e.ai)}</div>` : ""}
       ${e.transcript ? `<div class="transcript">“${esc(e.transcript)}”</div>` : ""}
+      ${Array.isArray(e.detail) ? e.detail.map(d => `<div class="docline">${esc(d)}</div>`).join("") : ""}
       ${e.link && /^https:\/\/(www\.)?fia\.com\//.test(e.link) ? `<a class="doclink" href="${esc(e.link)}" target="_blank" rel="noopener">Read the document (PDF)</a>` : ""}
       ${e.kind === "debrief" ? `<button class="copy" data-copy="${esc(e.text)}">Copy</button>` : ""}
       ${["ai", "comm", "debrief"].includes(e.kind) && !document.body.classList.contains("away") ? `<button class="copy share" data-share="${esc(e.text)}" data-title="${esc(e.title)}">Share</button>` : ""}
