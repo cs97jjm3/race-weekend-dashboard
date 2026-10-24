@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ed's Race Weekend Dashboard</title>
+<meta name="description" content="A live F1 pit wall for the family, running on a laptop from F1's own free timing. Built by James Murrell with his son Ed and an AI.">
+<meta property="og:title" content="Ed's Race Weekend Dashboard">
+<meta property="og:description" content="A live F1 pit wall for the family, on a laptop, from F1's own free timing. Try the demo in your browser.">
+<meta property="og:image" content="https://edsf1.jmmcp.uk/social-preview.png">
+<meta property="og:url" content="https://edsf1.jmmcp.uk/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="static/apple-touch-icon.png">
+<meta name="theme-color" content="#0b0d10">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #0b0d10; --panel: #11151a; --line: #222932; --ink: #e9edf2; --dim: #9aa5b1; --accent: #c8f031;
+          --red: #e8002d; --green: #1fbf5f; --purple: #a855f7; --yellow: #f2c230; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 19px/1.6 "Barlow", system-ui, sans-serif; }
+  a { color: var(--accent); }
+  .bar { height: 5px; background: var(--accent); }
+  .wrap { width: min(1120px, 100% - 32px); margin: 0 auto; }
+  header.top { display: flex; align-items: center; gap: 12px; padding: 18px 0; }
+  header.top img { width: 34px; height: 34px; }
+  header.top .name { font: 700 20px "Barlow Condensed", sans-serif; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+  header.top nav { margin-left: auto; display: flex; gap: 20px; font-size: 17px; }
+  header.top nav a { color: var(--dim); text-decoration: none; }
+  header.top nav a:hover { color: var(--ink); }
+  .hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; padding: 40px 0 56px; }
+  h1 { font: 700 clamp(46px, 7vw, 84px)/0.95 "Barlow Condensed", sans-serif; margin: 0 0 20px; letter-spacing: -.5px; }
+  h1 span { color: var(--accent); }
+  .lead { font-size: 22px; color: #c9d1d9; margin: 0 0 28px; max-width: 34em; }
+  .btns { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 12px 22px; border-radius: 8px; font: 600 18px "Barlow", sans-serif; text-decoration: none; }
+  .btn.go { background: var(--accent); color: #0b0d10; }
+  .btn.alt { border: 1.5px solid #3a4552; color: var(--ink); }
+  .btn:hover { filter: brightness(1.08); }
+  .hero .logo { justify-self: center; width: min(360px, 80%); }
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  h2 { font: 700 40px/1.05 "Barlow Condensed", sans-serif; margin: 0 0 14px; text-transform: uppercase; letter-spacing: .5px; }
+  .kicker { font: 600 15px "Barlow", sans-serif; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  p { margin: 0 0 16px; max-width: 46em; }
+  .demo { position: relative; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 16 / 10; margin-top: 22px; }
+  .demo iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .demo .start { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+                 background: radial-gradient(circle at center, rgba(11,13,16,.55), rgba(11,13,16,.92)), url("austin-fp2.png") center / cover; cursor: pointer; border: 0; width: 100%; color: var(--ink); font: inherit; }
+  .demo .start b { font: 700 30px "Barlow Condensed", sans-serif; letter-spacing: 1px; text-transform: uppercase; }
+  .demo .start .play { width: 84px; height: 84px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; }
+  .demo .start .play svg { width: 34px; margin-left: 6px; }
+  .note { color: var(--dim); font-size: 17px; margin-top: 12px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-top: 26px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; border-top: 3px solid var(--c, var(--accent)); }
+  .card h3 { margin: 0 0 6px; font: 700 23px "Barlow Condensed", sans-serif; letter-spacing: .5px; text-transform: uppercase; }
+  .card p { font-size: 17px; color: #c3cbd3; margin: 0; }
+  figure { margin: 26px 0 0; }
+  figure img { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+  figcaption { color: var(--dim); font-size: 16px; margin-top: 8px; }
+  .story { display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: start; }
+  .quote { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; padding: 20px 24px; font-size: 21px; }
+  .quote small { display: block; color: var(--dim); font-size: 16px; margin-top: 10px; }
+  .puzzle { display: grid; grid-template-columns: 220px 1fr; gap: 34px; align-items: center; }
+  .puzzle img { width: 220px; }
+  details { margin-top: 10px; color: var(--dim); }
+  details summary { cursor: pointer; color: var(--accent); }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 22px; counter-reset: s; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; counter-increment: s; }
+  .step::before { content: counter(s); display: block; font: 700 40px/1 "Barlow Condensed", sans-serif; color: var(--accent); margin-bottom: 6px; }
+  .step p { font-size: 17px; margin: 0; color: #c3cbd3; }
+  code { font: 500 15px "JetBrains Mono", monospace; background: #1a2028; padding: 2px 6px; border-radius: 4px; }
+  footer { border-top: 1px solid var(--line); padding: 34px 0 60px; color: var(--dim); font-size: 16px; }
+  footer p { max-width: none; }
+  @media (max-width: 820px) {
+    .hero, .story, .puzzle { grid-template-columns: 1fr; }
+    .hero .logo { width: 200px; order: -1; justify-self: start; }
+    header.top nav { display: none; }
+    .demo { aspect-ratio: 3 / 4; }
+    .puzzle img { width: 160px; }
+  }
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<div class="wrap">
+  <header class="top">
+    <img src="static/favicon.svg" alt="">
+    <span class="name">Ed's Race Weekend Dashboard</span>
+    <nav><a href="#demo">Demo</a><a href="#what">What it does</a><a href="#story">The story</a><a href="#get">Get it</a></nav>
+  </header>
+
+  <div class="hero">
+    <div>
+      <h1>A pit wall for the <span>family sofa</span></h1>
+      <p class="lead">My son Ed and I watch every Formula 1 weekend together. I wanted one screen that followed our drivers, told us what was going on and settled the arguments. So we built one. It runs on a laptop, uses F1's own free live timing, and costs next to nothing to run.</p>
+      <div class="btns"><a class="btn go" href="#demo">Watch the demo</a><a class="btn alt" href="https://github.com/cs97jjm3/race-weekend-dashboard">See the code on GitHub</a></div>
+    </div>
+    <img class="logo" src="static/logo.svg" alt="The logo: a race circuit drawn in grey with a red car and a green car on it">
+  </div>
+</div>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="kicker">Try it</div>
+    <h2>The real dashboard, playing a made-up race</h2>
+    <p>This isn't a video or a mock-up. It's the actual dashboard page, running in your browser against a race we invented, sped up fifteen times so the whole thing plays in about two minutes. Click around: switch to Ed's view, open the tyres and gaps, pick a layout, or try telly mode.</p>
+    <div class="demo" id="demobox">
+      <button class="start" id="startdemo" aria-label="Start the demo">
+        <span class="play"><svg viewBox="0 0 24 24"><path d="M5 3l16 9-16 9z" fill="#0b0d10"/></svg></span>
+        <b>Start the demo race</b>
+      </button>
+    </div>
+    <p class="note">Works best on a laptop or a big screen. <a href="demo/">Open it full screen</a>. The AI commentary, history lookups and predictions game need the real thing, because they go online.</p>
+  </div>
+</section>
+
+<section id="what">
+  <div class="wrap">
+    <div class="kicker">What it does</div>
+    <h2>Everything we wanted on one screen</h2>
+    <p>Each of us picks the teams and drivers we follow and gets our own colour, so the screen lights up when one of ours does something. Ed follows Audi, I follow Ferrari, and we both follow Verstappen and Antonelli.</p>
+    <div class="cards">
+      <div class="card"><h3>Live timing</h3><p>The full timing tower, with sector times in purple, green and yellow, the gaps, tyres and penalties, straight from F1's own feed.</p></div>
+      <div class="card" style="--c: var(--green)"><h3>Track map</h3><p>Every car on the real circuit, with yellow flags lighting up the right stretch of track. Positions are worked out from the timing, as GPS is F1 TV only.</p></div>
+      <div class="card" style="--c: var(--purple)"><h3>Team radio, written out</h3><p>When one of our drivers is on the radio, the clip is written out word for word by a free speech model running on the laptop.</p></div>
+      <div class="card" style="--c: #f5f5f5"><h3>The stewards</h3><p>Every incident followed from "noted" to the decision, and a badge by the driver's name when there's a penalty.</p></div>
+      <div class="card" style="--c: var(--yellow)"><h3>AI commentary</h3><p>Every few laps the AI picks the most interesting story: who's catching who, tyres, the pit stops, rain on the way. The dashboard does the maths and the AI just writes the words.</p></div>
+      <div class="card" style="--c: var(--red)"><h3>History at a click</h3><p>Click any driver, team or past race for the record: wins, poles, this season race by race, and how they've done at this track before.</p></div>
+      <div class="card" style="--c: #4aa3ff"><h3>The whole weekend</h3><p>Between sessions it shows a countdown, the timetable in UK time, the last result and the weather for the next session.</p></div>
+      <div class="card" style="--c: #f9a8d4"><h3>For the family</h3><p>Family outside the house can watch through a private link and a six-number code, and it sits on a phone's home screen like an app.</p></div>
+    </div>
+    <figure>
+      <img src="austin-fp2.png" alt="The dashboard during second practice at Austin, with the timing tower, the circuit map and the race feed" loading="lazy">
+      <figcaption>The real thing, during second practice at the 2026 United States Grand Prix in Austin.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="story">
+  <div class="wrap story">
+    <div>
+      <div class="kicker">The story</div>
+      <h2>Built in a week, tested at Austin</h2>
+      <p>I'm a business analyst by day, and over the last eighteen months I've been teaching myself to build things with AI. This started as a simple idea: put the free F1 timing on the laptop and highlight our drivers. Then Ed sat next to me every evening and kept asking "can it do this?". Some of the best ideas came from him.</p>
+      <p>I built it with Claude as my coding partner. I did the bit I'm good at, which is working out what the people using it actually need, and the AI did most of the typing. The first live test was Friday practice at Austin, which found two bugs on the first evening. By Saturday it had stewards' decisions, sector times, AI commentary and a logo.</p>
+      <p>The rule we kept to was that the dashboard does the sums and the AI only writes the words. It never guesses tyre wear or makes up strategy. If it's not in the timing, it doesn't say it.</p>
+    </div>
+    <div class="quote">Built in about a week.<br>Tested live at the 2026 United States Grand Prix.<br>Over forty automated tests, run by GitHub every time the code changes.<small>And one very keen co-designer on the sofa.</small></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap puzzle">
+    <img src="static/logo.svg" alt="The logo circuit">
+    <div>
+      <div class="kicker">A little puzzle</div>
+      <h2>Spot the four letters</h2>
+      <p>The logo looks like a race circuit, and it is one. But there are four letters hidden in the track, one for each of us. The family know what they are. Can you find them?</p>
+      <details><summary>A clue</summary>Start at the chequered line and follow the track. Think of the family round the sofa.</details>
+    </div>
+  </div>
+</section>
+
+<section id="get">
+  <div class="wrap">
+    <div class="kicker">Get it</div>
+    <h2>Run it on your own laptop</h2>
+    <p>It's free and open source. You need a Windows laptop and about ten minutes. No F1 TV subscription and no paid services: the AI parts are optional and cost pennies a weekend, or nothing at all on Google's free tier.</p>
+    <div class="steps">
+      <div class="step"><p>Download it from <a href="https://github.com/cs97jjm3/race-weekend-dashboard/releases">GitHub</a> and unzip it.</p></div>
+      <div class="step"><p>Double-click <b>1 Set up</b>. It installs what it needs.</p></div>
+      <div class="step"><p>Open <code>config.py</code> in Notepad and put in your family's names, teams and drivers.</p></div>
+      <div class="step"><p>On race weekends, double-click <b>2 Start dashboard</b> and enjoy the session.</p></div>
+    </div>
+    <p class="note" style="margin-top:18px">Everything else, from sharing with family to the AI settings, is in the <a href="https://github.com/cs97jjm3/race-weekend-dashboard#readme">README</a>, and <a href="https://github.com/cs97jjm3/race-weekend-dashboard/blob/main/HOW-IT-WORKS.md">How it works</a> explains how it's put together.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Made by James Murrell, with Ed. <a href="https://www.linkedin.com/in/james-murrell-900791176/">LinkedIn</a> · <a href="https://github.com/cs97jjm3/race-weekend-dashboard">GitHub</a> · MIT licence.</p>
+    <p>This is an unofficial home project and isn't connected to Formula 1 in any way. Live timing comes from F1's public timing feed; results and history from Jolpica; circuit outlines from MultiViewer; weather from Open-Meteo and RainViewer; map tiles from Esri. The demo race on this page is made up.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById("startdemo").onclick = () => {
+    const f = document.createElement("iframe");
+    f.src = "demo/"; f.title = "Demo of the dashboard playing a made-up race"; f.allow = "fullscreen";
+    const box = document.getElementById("demobox"); box.innerHTML = ""; box.appendChild(f);
+  };
+</script>
+</body>
+</html>

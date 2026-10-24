@@ -31,6 +31,7 @@ from race import Race
 from standings import Standings
 import share
 import commentary
+import weekend
 import history
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -312,6 +313,13 @@ def make_handler(race, radio, preds, gate):
                     data = None
                 body = json.dumps(data).encode("utf-8")
                 ctype = "application/json"
+            elif self.path.startswith("/weekend"):
+                try:
+                    data = weekend.view()
+                except Exception as e:
+                    log.info("Weekend view problem: %s", e)
+                    data = {"error": "Couldn't put the weekend together (%s)" % e}
+                return self._json(data)
             elif self.path.startswith("/history/"):
                 q = urllib.parse.urlparse(self.path)
                 args = urllib.parse.parse_qs(q.query)

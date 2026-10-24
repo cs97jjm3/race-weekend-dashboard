@@ -146,6 +146,7 @@ LOGIN_PAGE = """<!doctype html>
   input:focus { outline: none; border-color: #c8f031; }
   button { margin-top: 16px; width: 100%; font-size: 22px; font-weight: 700; padding: 14px; border: 0;
            border-radius: 10px; background: #c8f031; color: #0b0d10; cursor: pointer; }
+  .about { margin-top: 26px; font-size: 16px; } .about a { color: #c8f031; }
   .err { color: #ff6b81; margin-top: 14px; font-size: 18px; min-height: 22px; }
 </style></head><body>
 <form method="post" action="/login">
@@ -155,6 +156,7 @@ LOGIN_PAGE = """<!doctype html>
   <input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" autofocus aria-label="Passcode">
   <button type="submit">Let me in</button>
   <div class="err">{ERR}</div>
+  <p class="about">Not family? <a href="https://edsf1.jmmcp.uk/">See the project and try the demo</a></p>
 </form></body></html>"""
 
 

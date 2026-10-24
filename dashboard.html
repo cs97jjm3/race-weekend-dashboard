@@ -269,6 +269,24 @@
   .tdrivers { display: flex; gap: 12px; flex-wrap: wrap; }
   .tdrivers .tile { min-width: 220px; }
   .histnote { color: var(--dim); font-size: 14px; margin-top: 18px; }
+  /* between sessions */
+  .nextchip { font-size: 16px; color: var(--ink); border: 1px solid #3a4552; border-radius: 999px; padding: 4px 14px; white-space: nowrap; }
+  .nextchip b { color: var(--accent); font-weight: 600; }
+  .wk h3 { margin: 6px 0 2px; font-size: 30px; text-transform: uppercase; letter-spacing: .5px; }
+  .wk .sub { color: var(--dim); font-size: 17px; margin-bottom: 18px; }
+  .wk .count { background: var(--bg); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 20px; }
+  .wk .count .what { font-size: 16px; color: var(--dim); letter-spacing: 1.5px; text-transform: uppercase; }
+  .wk .count .big { font: 700 44px/1.1 "Barlow Condensed", sans-serif; color: var(--accent); }
+  .wk .count .when { font-size: 18px; color: var(--ink); }
+  .wk .count .wx { margin-top: 8px; color: var(--dim); font-size: 17px; }
+  .wk h4 { margin: 0 0 8px; font-size: 15px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+  .wk .tt { display: grid; grid-template-columns: 1fr auto auto; gap: 6px 18px; font-size: 19px; margin-bottom: 22px; align-items: baseline; }
+  .wk .tt .d { color: var(--dim); } .wk .tt .done { color: var(--dim); text-decoration: line-through; text-decoration-color: #3a4552; }
+  .wk .tt .tag { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; padding: 1px 8px; border-radius: 4px; }
+  .wk .tt .tag.next { background: var(--accent); color: #0b0d10; } .wk .tt .tag.live { background: var(--red); color: #fff; }
+  .wk .last { font-size: 18px; line-height: 1.7; }
+  .wk .last .p { font-family: "JetBrains Mono", monospace; color: var(--dim); display: inline-block; width: 42px; }
+  .wk .last .mine { color: var(--tone, var(--accent)); }
   /* sectors and qualifying */
   .secs { display: inline-flex; gap: 3px; vertical-align: middle; }
   .secs i { width: 16px; height: 9px; border-radius: 2px; background: #252c35; display: inline-block; }
@@ -291,8 +309,11 @@
   .tocut.bad { color: #ff6b81; } .tocut.ok { color: var(--dim); }
 
   /* middle panel tabs */
-  .tabs { display: flex; gap: 4px; }
-  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--dim); font: inherit; font-size: 15px; letter-spacing: 1.5px; text-transform: uppercase; padding: 0 8px 4px; cursor: pointer; }
+  .tabs { display: flex; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  #mapsec .head { overflow: hidden; }
+  #tabnote { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--dim); font: inherit; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; padding: 0 6px 4px; white-space: nowrap; cursor: pointer; }
   .tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
   .pane { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 16px; }
   .pane .note { color: var(--dim); font-size: 15px; margin: 4px 0 10px; }
@@ -399,6 +420,7 @@
 </div>
 <div class="bar">
   <div class="gp" id="gp">Race Weekend<small id="sess"></small></div>
+  <div class="nextchip hidden" id="nextchip"></div>
   <div class="lap" id="lap"></div>
   <button class="wx" id="wx" title="Open the weather"></button>
   <div class="flag WAIT" id="flag">WAITING</div>
@@ -493,13 +515,14 @@
   <section id="mapsec">
     <div class="head"><span class="tabs" id="tabs">
         <button data-t="map" class="on">Map</button><button data-t="tyres">Tyres</button><button data-t="gaps">Gaps</button>
-        <button data-t="speeds">Speeds</button><button data-t="standings">Standings</button></span>
+        <button data-t="speeds">Speeds</button><button data-t="standings">Standings</button><button data-t="weekend">Weekend</button></span>
       <span id="tabnote">Estimated positions</span><span id="trackname" class="hidden">Track</span></div>
     <div class="mapwrap" id="pane-map"><svg id="map" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg></div>
     <div class="pane hidden" id="pane-tyres"></div>
     <div class="pane hidden" id="pane-gaps"></div>
     <div class="pane hidden" id="pane-speeds"></div>
     <div class="pane hidden" id="pane-standings"></div>
+    <div class="pane hidden" id="pane-weekend"></div>
   </section>
   <section id="feedsec">
     <div class="head"><span>Race feed</span><span id="feedcount"></span></div>
@@ -902,6 +925,7 @@ function render(s) {
     try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied"; }
     catch (e) { b.textContent = "Select the text to copy"; }
   });
+  weekendTick(s);
   drawTab(s);
   playSounds(s);
   const ask = document.getElementById("aiask");
@@ -996,17 +1020,18 @@ document.getElementById("sechead").onclick = () => {
 };
 applySecTimes();
 try { tab = localStorage.getItem("rwd-tab") || "map"; } catch (e) {}
-function setTab(t) {
+let tabPicked = false, autoWeekend = false;
+function setTab(t, auto) {
   tab = t;
-  try { localStorage.setItem("rwd-tab", t); } catch (e) {}
+  if (!auto) { tabPicked = true; autoWeekend = false; try { localStorage.setItem("rwd-tab", t); } catch (e) {} }
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
-  for (const k of ["map", "tyres", "gaps", "speeds", "standings"])
+  for (const k of ["map", "tyres", "gaps", "speeds", "standings", "weekend"])
     document.getElementById("pane-" + k).classList.toggle("hidden", k !== t);
   if (lastState) drawTab(lastState);
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => setTab(b.dataset.t));
 const isMine = r => filter === "Everyone" ? r.watchers.length > 0 : r.watchers.includes(filter);
-const NOTES = {map: "Estimated positions", tyres: "Tyre stints", gaps: "Gap to the car ahead", speeds: "Speed trap, best"};
+const NOTES = {map: "Estimated positions", tyres: "Tyre stints", gaps: "Gap to the car ahead", speeds: "Speed trap, best", weekend: "Between sessions"};
 
 function drawTab(s) {
   document.getElementById("tabnote").textContent =
@@ -1016,6 +1041,59 @@ function drawTab(s) {
   else if (tab === "gaps") drawGaps(s);
   else if (tab === "speeds") drawSpeeds(s);
   else if (tab === "standings") drawStandings(s);
+  else if (tab === "weekend") drawWeekend(s);
+}
+
+// ----- between sessions: the weekend timetable, a countdown and the last result -----
+let weekendData = null, weekendAt = 0;
+async function loadWeekend() {
+  try { weekendData = await (await fetch("/weekend", {cache: "no-store"})).json(); } catch (e) {}
+  weekendAt = Date.now();
+}
+function isLive(s) { return s && s.sessionStatus === "Started" && s.age !== null && s.age < 120; }
+function untilText(iso) {
+  let m = Math.round((new Date(iso) - Date.now()) / 60000);
+  if (m <= 0) return "starting now";
+  const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+  return "in " + (d ? d + "d " + h + "h" : h ? h + "h " + mm + "m" : mm + "m");
+}
+const dayTime = iso => new Date(iso).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"});
+function weekendTick(s) {
+  if (!weekendData || Date.now() - weekendAt > 60000) loadWeekend();
+  const live = isLive(s), chip = document.getElementById("nextchip"), w = weekendData;
+  if (!live && w && w.next && !w.next.live) {
+    chip.innerHTML = `Next: <b>${esc(w.next.name)}</b> ${esc(untilText(w.next.start))}`;
+    chip.classList.remove("hidden");
+  } else chip.classList.add("hidden");
+  if (!live && !tabPicked && tab !== "weekend") { autoWeekend = true; setTab("weekend", true); }
+  if (live && autoWeekend) { autoWeekend = false; let t = "map"; try { t = localStorage.getItem("rwd-tab") || "map"; } catch (e) {} setTab(t, true); }
+}
+function drawWeekend(s) {
+  const el = document.getElementById("pane-weekend"), w = weekendData;
+  if (!w) { el.innerHTML = '<div class="wk"><div class="sub">Getting the timetable…</div></div>'; return; }
+  if (w.error) { el.innerHTML = `<div class="wk"><div class="sub">${esc(w.error)}</div></div>`; return; }
+  let h = `<div class="wk"><h3>${esc(w.name)}</h3><div class="sub">Round ${esc(w.round || "")} · ${esc(w.circuit)}, ${esc(w.place)}</div>`;
+  if (w.next) {
+    const o = w.outlook;
+    h += `<div class="count"><div class="what">${w.next.live ? "On now" : "Next up"}</div>
+      <div class="big">${esc(w.next.name)} ${w.next.live ? "" : esc(untilText(w.next.start))}</div>
+      <div class="when">${esc(dayTime(w.next.start))} your time</div>
+      ${o ? `<div class="wx">Forecast at the start: ${Math.round(o.temp)}°C, ${o.rain}% chance of rain, wind ${Math.round(o.wind)} mph</div>` : ""}</div>`;
+  }
+  h += `<h4>The weekend, your time</h4><div class="tt">` + w.sessions.map(x =>
+    `<span class="${x.status === "done" ? "done" : ""}">${esc(x.name)}</span><span class="d ${x.status === "done" ? "done" : ""}">${esc(dayTime(x.start))}</span>
+     <span>${x.status === "live" ? '<span class="tag live">Live</span>' : (w.next && x.name === w.next.name && x.status === "next") ? '<span class="tag next">Next</span>' : x.status === "done" ? '<span class="d">done</span>' : ""}</span>`).join("") + `</div>`;
+  const rows = (s.rows || []).filter(r => r.pos < 99 && !r.out);
+  if (rows.length && !isLive(s)) {
+    const people = s.people || {};
+    const pick = rows.filter((r, i) => i < 3 || r.watchers.length);
+    h += `<h4>Last session: ${esc(s.session || "")}</h4><div class="last">` + pick.map(r => {
+      const tone = r.watchers.length ? `style="--tone:${esc(people[r.watchers[0]] || "")}"` : "";
+      const t = s.isRace ? (r.pos === 1 ? "winner" : r.gap) : (r.best || r.partBest || "");
+      return `<div class="${r.watchers.length ? "mine" : ""}" ${tone}><span class="p">P${r.pos}</span>${esc(r.name)} <span class="d">${esc(r.team)}</span> <span class="d">${esc(t || "")}</span>${r.watchers.length ? " · " + esc(r.watchers.join(", ")) : ""}</div>`;
+    }).join("") + `</div>`;
+  }
+  el.innerHTML = h + `</div>`;
 }
 
 function drawTyres(s) {
@@ -1573,7 +1651,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") { closeWeather(); closePreds(); if (document.body.classList.contains("tv")) setTv(false); }
   if ((e.key === "t" || e.key === "T") && !/INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName || "")) setTv(!document.body.classList.contains("tv"));
 });
-setTab(tab);
+setTab(tab, true);
 refresh();
 setInterval(refresh, 1000);
 </script>

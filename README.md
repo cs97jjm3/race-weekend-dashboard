@@ -14,6 +14,8 @@ free live timing. Tested live at the 2026 United States Grand Prix in Austin.
 
 The logo is a race circuit with four letters hidden in the track. Can you spot them?
 
+**Try it in your browser: [edsf1.jmmcp.uk](https://edsf1.jmmcp.uk)** (the real dashboard playing a made-up race).
+
 How it's put together: [HOW-IT-WORKS.md](HOW-IT-WORKS.md). This is a home project and isn't
 connected to Formula 1 in any way.
 
@@ -269,6 +271,21 @@ itself, costs nothing, and downloads the model (about 150 MB) the first time.
 The dashboard can sit on a phone or tablet like an app, with its own icon. Open the link,
 then on an iPhone tap Share and "Add to Home Screen"; on Android tap the ⋮ menu and "Add to
 Home screen" (or "Install app"). It opens full screen without the browser bars.
+
+## Between sessions
+
+When nothing is live, the middle of the screen switches to a Weekend tab by itself: a countdown
+to the next session, the whole weekend's timetable in your own time, the last session's result
+with your drivers picked out, and the weather forecast for the start of the next session. A
+"Next: Qualifying in 6h 58m" reminder sits next to the race name. Once a session starts it goes
+back to the map (or whichever tab you last chose).
+
+## The project website
+
+The `docs` folder is the project's website (edsf1.jmmcp.uk), served free by GitHub Pages. Its
+demo is the real dashboard page playing the made-up demo race in the browser. After changing the
+dashboard, rebuild it with `py tools\build_web_demo.py` (it needs the Austin track outline in the
+tracks folder, which the dashboard saves the first time it runs).
 
 ## Hiding and arranging the screen
 

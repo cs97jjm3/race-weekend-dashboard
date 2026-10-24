@@ -78,6 +78,13 @@ quietly looks up everyone the family follows, one lookup every couple of seconds
 champions are built in rather than looked up. Lookups are spaced out, and if Jolpica ever says
 we've asked too much, it backs off for ten minutes and uses what it already has.
 
+**weekend.py** builds the between-sessions screen: the weekend timetable from Jolpica's calendar,
+which session is next, and Open-Meteo's forecast for the circuit at its start time.
+
+**tools/build_web_demo.py** makes the website's demo: it plays the demo race through race.py,
+saves what the screen shows every second, and adds a small script (`demo-shim.js`) that answers
+the page's requests from those snapshots instead of from the dashboard program.
+
 **standings.py** gets the championship tables and the calendar from Jolpica every half hour
 and works out the points each driver would get if the race finished now.
 
