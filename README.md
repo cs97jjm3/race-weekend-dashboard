@@ -1,5 +1,18 @@
 # Ed's Race Weekend Dashboard
 
+[![tests](https://github.com/cs97jjm3/race-weekend-dashboard/actions/workflows/tests.yml/badge.svg)](https://github.com/cs97jjm3/race-weekend-dashboard/actions/workflows/tests.yml)
+[![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
+![Windows](https://img.shields.io/badge/runs%20on-Windows-lightgrey.svg)
+
+A live Formula 1 race-weekend screen for the family, running on a laptop and using F1's own
+free live timing. Tested live at the 2026 United States Grand Prix in Austin.
+
+![The dashboard during second practice at Austin](docs/austin-fp2.png)
+
+How it's put together: [HOW-IT-WORKS.md](HOW-IT-WORKS.md). This is a home project and isn't
+connected to Formula 1 in any way.
+
 ## Quick start (no computer skills needed)
 
 1. Double-click **1 Set up**. It installs everything the dashboard needs. If it installs
@@ -312,3 +325,17 @@ of a penny. If Claude doesn't answer, the reason shows in the feed and the black
 
 Keep the key private, like a password, and never put
 config.py on GitHub with the key in it.
+
+## Tests
+
+The `tests` folder checks the important parts with the demo recordings and made-up data, and
+GitHub runs them on every push (the green badge at the top). To run them yourself:
+
+```
+py -m pip install pytest
+py -m pytest
+```
+
+## Licence
+
+MIT: use it, change it, share it, as long as the copyright notice stays with it. See LICENSE.
