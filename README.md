@@ -260,6 +260,12 @@ py dashboard.py --test-radio
 The test transcribes a short public domain clip so you know it works. It runs on the laptop
 itself, costs nothing, and downloads the model (about 150 MB) the first time.
 
+## On a phone's home screen
+
+The dashboard can sit on a phone or tablet like an app, with its own icon. Open the link,
+then on an iPhone tap Share and "Add to Home Screen"; on Android tap the ⋮ menu and "Add to
+Home screen" (or "Install app"). It opens full screen without the browser bars.
+
 ## Hiding and arranging the screen
 
 Use the Show switches (Timings, Map, Feed) to hide any part you don't want, for example

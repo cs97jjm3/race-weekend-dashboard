@@ -131,6 +131,10 @@ def start_tunnel(port, gate, on_link):
 LOGIN_PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ed's Race Weekend Dashboard</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<meta name="theme-color" content="#0b0d10">
 <style>
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
          background: #0b0d10; color: #e9edf2; font-family: system-ui, sans-serif; }
@@ -145,6 +149,7 @@ LOGIN_PAGE = """<!doctype html>
   .err { color: #ff6b81; margin-top: 14px; font-size: 18px; min-height: 22px; }
 </style></head><body>
 <form method="post" action="/login">
+  <img src="/static/mark.svg" alt="" width="84" height="84" style="margin-bottom:14px">
   <h1>Ed's Race Weekend Dashboard</h1>
   <p>Type in the six-number code James sent you.</p>
   <input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" autofocus aria-label="Passcode">

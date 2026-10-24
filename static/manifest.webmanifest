@@ -1,0 +1,17 @@
+{
+  "name": "Ed's Race Weekend Dashboard",
+  "short_name": "Race Weekend",
+  "description": "A live F1 race-weekend screen for the family.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "icons": [
+    {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "/static/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    {"src": "/static/favicon.svg", "sizes": "any", "type": "image/svg+xml"}
+  ]
+}

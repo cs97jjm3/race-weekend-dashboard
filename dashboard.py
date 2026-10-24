@@ -164,6 +164,23 @@ def make_handler(race, radio, preds, gate):
             self.end_headers()
             self.wfile.write(body)
 
+        STATIC_TYPES = {".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon",
+                        ".webmanifest": "application/manifest+json"}
+
+        def _static(self):
+            name = "favicon.ico" if self.path == "/favicon.ico" else self.path[len("/static/"):].split("?")[0]
+            ext = os.path.splitext(name)[1]
+            fn = os.path.join(HERE, "static", name)
+            if "/" in name or "\\" in name or name.startswith(".") or ext not in self.STATIC_TYPES or not os.path.isfile(fn):
+                return self.send_error(404)
+            with open(fn, "rb") as f:
+                body = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", self.STATIC_TYPES[ext])
+            self.send_header("Cache-Control", "max-age=86400")
+            self.end_headers()
+            self.wfile.write(body)
+
         def _let_in(self):
             """Home Wi-Fi gets straight in; visitors from outside need the passcode."""
             if gate.allowed(self):
@@ -212,6 +229,8 @@ def make_handler(race, radio, preds, gate):
         def do_GET(self):
             if self.path.startswith("/login"):
                 return self._page(share.login_page(""))
+            if self.path == "/favicon.ico" or self.path.startswith("/static/"):
+                return self._static()          # icons and the app details: fine to show without the passcode
             if not self._let_in():
                 return
             if self.path.startswith("/state"):
