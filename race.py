@@ -2,6 +2,7 @@
 import re
 import threading
 import time
+from datetime import datetime, timezone
 
 import config
 from notify import ai_name, ai_ready
@@ -61,6 +62,59 @@ def lap_seconds(text):
     return int(m.group(1) or 0) * 60 + float(m.group(2))
 
 
+def hms_seconds(text):
+    """'01:02:03' or '12:34' -> seconds."""
+    parts = str(text or "").strip().split(":")
+    try:
+        nums = [float(p) for p in parts]
+    except ValueError:
+        return None
+    if not 1 <= len(nums) <= 3:
+        return None
+    secs = 0.0
+    for v in nums:
+        secs = secs * 60 + v
+    return secs
+
+
+def parse_utc(text):
+    try:
+        t = str(text).replace("Z", "+00:00")
+        if "." in t:       # F1 sometimes sends seven decimal places, more than Python reads
+            head, tail = t.split(".", 1)
+            frac = re.match(r"\d+", tail).group(0)
+            t = head + "." + frac[:6] + tail[len(frac):]
+        d = datetime.fromisoformat(t)
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        return d.timestamp()
+    except Exception:
+        return None
+
+
+def _num(x):
+    try:
+        v = float(str(x).strip())
+        return v if v > 0 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _find_stops(x, depth=0):
+    """Every record with a car number and a lap, wherever F1 has nested it."""
+    if depth > 6 or x is None:
+        return
+    if isinstance(x, dict):
+        if "RacingNumber" in x and ("Lap" in x or "Duration" in x or "PitStopTime" in x):
+            yield x
+            return
+        for v in x.values():
+            yield from _find_stops(v, depth + 1)
+    elif isinstance(x, list):
+        for v in x:
+            yield from _find_stops(v, depth + 1)
+
+
 def items(x):
     if isinstance(x, dict):
         return [v for _, v in sorted(x.items(), key=lambda kv: int(kv[0]) if str(kv[0]).isdigit() else 0)]
@@ -109,6 +163,9 @@ class Race:
         self.pit_log = []         # every stop this session: who, which lap, from where, who was around them
         self.weather_start = {}   # the weather when the session started, to compare with later
         self.standings = None     # set by dashboard.py to the Standings helper
+        self.clock = None         # session clock: (seconds left, when that was true, counting down?)
+        self.pos_hist = {}        # num -> {lap: position at the end of that lap}, for the lap chart
+        self.stop_times = {}      # (num, lap) -> {"stop": stationary secs, "lane": pit lane secs}
 
     def set_clock(self, t, speed):
         """Replays tell us where we are in the session, so the map can keep time."""
@@ -247,6 +304,10 @@ class Race:
                     self._session_data()
                 elif topic == "TeamRadio":
                     self._radio()
+                elif topic == "ExtrapolatedClock":
+                    self._clock(data)
+                elif topic in ("PitStopSeries", "PitLaneTimeCollection"):
+                    self._pit_times()
                 self._settle_moves()
             except Exception as e:
                 self.status = "Problem reading %s: %s" % (topic, e)
@@ -263,6 +324,7 @@ class Race:
         self.crossed, self.gap_hist, self.top_speed, self.penalties, self.grid = {}, {}, {}, {}, {}
         self.pit_log, self.weather_start = [], {}
         self.quali_part = 0
+        self.clock, self.pos_hist, self.stop_times = None, {}, {}
 
     def _track(self):
         st = str((self.raw.get("TrackStatus") or {}).get("Status", "1"))
@@ -375,7 +437,8 @@ class Race:
                 self._penalty(nums, up)
                 stage = ("PENALTY" if "PENALTY" in up and "NO PENALTY" not in up and "SERVED" not in up
                          else "SERVED" if "SERVED" in up
-                         else "NO FURTHER ACTION" if "NO FURTHER" in up or "NO PENALTY" in up
+                         else "NO FURTHER ACTION" if "NO FURTHER" in up or "NO PENALTY" in up or "NO INVESTIGATION" in up
+                         else "AFTER THE SESSION" if "AFTER THE SESSION" in up or "AFTER THE RACE" in up
                          else "UNDER INVESTIGATION" if "UNDER INVESTIGATION" in up
                          else "NOTED" if "NOTED" in up
                          else "REPRIMAND" if "REPRIMAND" in up
@@ -571,6 +634,8 @@ class Race:
                     iv = None      # leading: there's no car ahead to measure to
                 if laps_done and (iv is not None or gl is not None) and not out:
                     self.gap_hist.setdefault(n, {})[int(laps_done)] = (iv, gl)
+                if laps_done and str(pos).isdigit() and not out:
+                    self.pos_hist.setdefault(n, {})[int(laps_done)] = int(pos)
             # fastest lap
             if last.get("OverallFastest") and lv and lv != p.get("fl") and who:
                 p["fl"] = lv
@@ -702,6 +767,112 @@ class Race:
             out.append({"c": s.get("Compound") or "", "laps": max(0, total - start), "new": s.get("New")})
         return out
 
+
+    # ----- session clock -----
+
+    def _clock(self, data):
+        """F1's ExtrapolatedClock: time left in the session, and whether it is counting down.
+        It only sends a new value when the clock starts, stops or jumps, so we count between."""
+        c = self.raw.get("ExtrapolatedClock") or {}
+        rem = hms_seconds(c.get("Remaining"))
+        if rem is None:
+            return
+        at = self.now()
+        if self.sim_t is None and isinstance(data, dict) and data.get("Remaining") is not None:
+            utc = parse_utc(c.get("Utc"))
+            if utc and -120 < at - utc < 4 * 3600:
+                at = utc     # live: the value was true at F1's time stamp, which may be a while ago
+        if isinstance(data, dict) and data.get("Remaining") is None and self.clock:
+            rem, at = self.clock_left(), self.now()   # only the running flag changed: freeze where it is
+        self.clock = (rem, at, bool(c.get("Extrapolating")))
+
+    def clock_left(self):
+        if not self.clock:
+            return None
+        rem, at, running = self.clock
+        return max(0.0, rem - (self.now() - at)) if running else rem
+
+    # ----- pit stop times -----
+
+    def _pit_times(self):
+        """Stationary and pit lane times. F1 sends these a little after the car leaves the pits,
+        in PitStopSeries (both times) and PitLaneTimeCollection (pit lane only)."""
+        has_series = "PitStopSeries" in self.raw
+        for topic in ("PitStopSeries", "PitLaneTimeCollection"):
+            for d in _find_stops(self.raw.get(topic)):
+                n = str(d.get("RacingNumber"))
+                lap = str(d.get("Lap") or "")
+                stop = _num(d.get("PitStopTime"))
+                lane = _num(d.get("PitLaneTime") if d.get("PitLaneTime") is not None else d.get("Duration"))
+                if n not in self.drivers() or (stop is None and lane is None):
+                    continue
+                rec = self.stop_times.setdefault((n, lap), {})
+                if stop is not None:
+                    rec["stop"] = stop
+                if lane is not None:
+                    rec["lane"] = lane
+                if rec.get("told") or (has_series and rec.get("stop") is None):
+                    continue
+                rec["told"] = True
+                for s in reversed(self.pit_log):
+                    if s["num"] == n and "lane" not in s:
+                        s["stop"], s["lane"] = rec.get("stop"), rec.get("lane")
+                        break
+                who = self.watchers(n)
+                if who and self.is_race():
+                    self.emit(self.stop_text(n, rec), who=who, title="PIT STOP TIME", kind="pit",
+                              key="pittime-%s-%s" % (n, lap))
+
+    def stop_text(self, n, rec):
+        bits = []
+        if rec.get("stop") is not None:
+            bits.append("%.1fs stationary" % rec["stop"])
+        if rec.get("lane") is not None:
+            bits.append("%.1fs in the pit lane" % rec["lane"])
+        text = "%s's stop: %s." % (self.name(n), ", ".join(bits))
+        st = rec.get("stop")
+        if st is not None:
+            others = [r["stop"] for k, r in self.stop_times.items() if r.get("stop") and r is not rec]
+            if st >= 4.0:
+                text += " A slow one."
+            elif others and st < min(others):
+                text += " The quickest stop of the race so far."
+        return text
+
+    def stops(self):
+        """Every timed stop, for the screen: [{num, lap, stop, lane}]."""
+        out = []
+        for (n, lap), r in self.stop_times.items():
+            out.append({"num": n, "lap": int(lap) if lap.isdigit() else None,
+                        "stop": r.get("stop"), "lane": r.get("lane")})
+        out.sort(key=lambda r: (r["lap"] or 0, r["num"]))
+        return out
+
+    # ----- lap chart -----
+
+    def lap_chart(self):
+        """Position at the end of every lap for every driver: {num: [[lap, pos], ...]}, with the
+        grid as lap 0. Uses F1's LapSeries when it has it, otherwise what we saw ourselves."""
+        out = {}
+        series = self.raw.get("LapSeries") or {}
+        for n in self.lines():
+            pts = {}
+            if str(n) in self.grid:
+                pts[0] = self.grid[str(n)]
+            for lap, pos in (self.pos_hist.get(n) or {}).items():
+                pts[lap] = pos
+            ls = series.get(n) if isinstance(series, dict) else None
+            lp = (ls or {}).get("LapPosition") if isinstance(ls, dict) else None
+            seq = lp.items() if isinstance(lp, dict) else enumerate(lp or [])
+            for i, v in seq:
+                try:
+                    pts[int(i)] = int(v)
+                except (TypeError, ValueError):
+                    pass
+            if len(pts) > 1:
+                out[n] = sorted([k, v] for k, v in pts.items())
+        return out
+
     # ----- for the screen -----
 
     def view(self):
@@ -777,6 +948,12 @@ class Race:
                 "rows": rows, "events": self.events[:80], "status": self.status,
                 "people": people,
                 "gaps": gaps,
+                "clock": None if self.clock is None else {"left": round(self.clock_left(), 1), "running": self.clock[2],
+                                                          "rate": self.replay_speed or 1},
+                "lapChart": self.lap_chart() if self.is_race() else {},
+                "stops": self.stops(),
+                "pitLaps": {n: [x["lap"] for x in self.pit_log if x["num"] == n and x["lap"]]
+                            for n in {x["num"] for x in self.pit_log}},
                 "age": None if self.last_data is None else round(time.time() - self.last_data, 1),
                 "replay": self.replay_speed,
                 "circuit": ((s.get("Meeting") or {}).get("Circuit") or {}).get("Key"),

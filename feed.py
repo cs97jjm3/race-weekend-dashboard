@@ -11,11 +11,12 @@ LIVE_TOPICS = [
     "Heartbeat", "DriverList", "SessionInfo", "SessionStatus", "TrackStatus",
     "LapCount", "TimingData", "TimingAppData", "TimingStats",
     "RaceControlMessages", "WeatherData", "ExtrapolatedClock", "TopThree", "TeamRadio", "SessionData",
+    "PitLaneTimeCollection", "PitStopSeries", "LapSeries",
 ]
 REPLAY_TOPICS = [
     "DriverList", "SessionInfo", "SessionStatus", "TrackStatus", "LapCount",
     "TimingData", "TimingAppData", "RaceControlMessages", "WeatherData", "TeamRadio", "SessionData",
-    "TimingStats",
+    "TimingStats", "ExtrapolatedClock", "PitLaneTimeCollection", "PitStopSeries", "LapSeries",
 ]
 STATIC = "https://livetiming.formula1.com/static/"
 UA = {"User-Agent": "race-weekend-dashboard/1.0"}

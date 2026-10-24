@@ -27,10 +27,11 @@ from feed import ArchiveLocked, LiveFeed, Recorder, ReplayFeed, find_session
 from notify import Notifier, ai_name, ai_ready, provider, ai_model
 from predictions import Predictions
 from radio import Radio
-from race import Race
+from race import EVERYONE, Race
 from standings import Standings
 import share
 import commentary
+import fia
 import weekend
 import history
 
@@ -378,6 +379,7 @@ def main():
     ap.add_argument("--share", nargs="?", const="new", metavar="PASSCODE",
                     help="share a private link for people outside the house (new six-digit passcode unless you give one)")
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--check-fia", action="store_true", help="list the stewards' decisions on the FIA's documents page now, then exit")
     args = ap.parse_args()
 
     if args.test_radio:
@@ -396,6 +398,21 @@ def main():
         text.model = None
         out = radio_mod.Radio._transcribe(text, audio)
         raise SystemExit("\nIt works (%.1f seconds). Heard:\n  \"%s\"\n" % (time.time() - t0, out))
+
+    if args.check_fia:
+        w = weekend.view()
+        if not w.get("name"):
+            raise SystemExit("\nCouldn't work out this weekend's event: %s\n" % w.get("error"))
+        try:
+            html = fia.Checker._fetch()
+        except Exception as e:
+            raise SystemExit("\nCouldn't read the FIA's documents page (%s)\n" % e)
+        docs = fia.documents(html, w["name"], (w.get("place") or "").split(",")[0])
+        print("\n%s: %d documents on the FIA page, %d of them decisions:\n" % (
+            w["name"], len(docs), len([1 for u, t in docs if fia.is_decision(t)])))
+        for u, t in docs:
+            print("  %s %s" % ("*" if fia.is_decision(t) else " ", t))
+        raise SystemExit("\n(* = would go in the feed)\n")
 
     if args.test_ai:
         from notify import fallback
@@ -477,6 +494,14 @@ def main():
     race.radio_hook = radio
     race.standings = Standings()
     race.commentator = commentary.Commentator(race, lambda t, text: race.say(t, text, auto=True))
+
+    def fia_doc(title, url):
+        text, who = fia.car_names(race, title)
+        kind = title.split(" - ")[0].upper()
+        with race.lock:
+            race.emit(text, who=tuple(who) if who else EVERYONE, title="FIA DOCUMENT · " + kind,
+                      kind="stewards", send=bool(who), extra={"link": url})
+    race.fia = fia.Checker(race, fia_doc)
 
     def warm_history():
         """Once the driver list has arrived, quietly look up everyone the family follows."""

@@ -35,7 +35,7 @@ the names, teams and drivers under PEOPLE. Your config.py is private and never s
 ---
 
 A live race screen for the family, using F1's own free live timing: timing tower with sector
-times, track map, tyres, gaps, speeds, standings, stewards' decisions, team radio with
+times, a session clock, track map, tyres, gaps, a lap chart, pit stop times, speeds, standings, stewards' decisions, team radio with
 transcripts, driver and team history, a predictions game and optional AI commentary. Each
 person picks the teams and drivers they follow and gets their own colour and alerts.
 
@@ -158,12 +158,24 @@ py dashboard.py --demo quali
 Every row on the timing tower has three little sector blocks: purple for the fastest anyone
 has done, green for a driver's own best, yellow for slower. Click the Sectors heading to swap
 the blocks for the actual sector times, in the same colours (click again to go back; it
-remembers). On a narrower screen the team names hide to make room. The middle of the screen has tabs:
+remembers). On a narrower screen the team names hide to make room.
+
+Next to the session name is the time left, from F1's own session clock. It goes yellow and
+says "clock stopped" under a red flag, and red in the last two minutes. In a race it only
+shows near the time limit or when the clock is stopped.
+
+When one of your drivers pits, the feed tells you where they should rejoin, then a few seconds
+later how long they were stationary and how long they were in the pit lane, with a note if it
+was slow or the quickest of the race so far. The AI commentary uses the stop times too.
+
+The middle of the screen has tabs:
 
 Map shows the circuit with the cars on it. Tyres shows each driver's stints as coloured bars,
 one per set of tyres, so you can see who's still got to stop. Gaps is a line chart of how far
 your drivers are behind the car in front, lap by lap, with the "within a second" zone shaded
-so you can see who's catching. Speeds ranks everyone by their best speed trap reading.
+so you can see who's catching. Lap chart has a line for every driver showing their position at
+the end of each lap, starting from the grid, with your drivers in bold and circles where they
+pitted; underneath it lists the quickest stop of the race and your drivers' stop times. Speeds ranks everyone by their best speed trap reading.
 Standings shows the championship as it would be if the race finished now, with the points
 each driver is earning in green, and the team table alongside.
 
@@ -172,7 +184,7 @@ says so and everything else carries on.
 
 ## Stewards and penalties
 
-Every stewards' decision shows in the feed with a white edge and where it's got to: NOTED,
+Every stewards' decision shows in the feed in red and where it's got to: NOTED,
 UNDER INVESTIGATION, PENALTY, NO FURTHER ACTION or SERVED, so you can follow an incident to
 its outcome. They show for everyone; when your drivers are involved they're tagged to you, and
 a penalty for one of yours plays the alert sound. Track limits deletions for your drivers show
@@ -181,6 +193,15 @@ as RACE CONTROL.
 Penalties also appear as a small white badge by the driver's name in the timing table: +5s,
 DT (drive-through), SG (stop-go), a grid penalty, B/W flag or DSQ. Drive-throughs and stop-gos
 disappear once served; time penalties stay, as they're added at the finish.
+
+### FIA documents
+
+Lots of stewards' decisions, especially grid penalties after qualifying, are only published as
+documents on the FIA's website and never appear in the timing. Five minutes before each session
+(and once when the dashboard starts) it reads the FIA's list of documents for this event and puts
+any new decisions, infringements, summonses and penalties in the feed in red, with a "Read the
+document (PDF)" button. Car numbers get the driver's name added. To see what's there right now:
+`py dashboard.py --check-fia`.
 
 ## Driver, team and race history
 

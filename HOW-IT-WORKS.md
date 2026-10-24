@@ -56,7 +56,10 @@ connection every couple of minutes and reconnects if it has dropped.
 **race.py** is the heart of it. It folds F1's small changes into one full picture (`merge`),
 then works out what has changed since last time: overtakes, pit stops and where a driver will
 rejoin, battles, fastest laps, flags, safety cars, retirements, stewards' decisions and
-penalties, qualifying drop zones and cut lines, and the finish. Each event is tagged with the
+penalties, pit stop times, qualifying drop zones and cut lines, and the finish. It also keeps
+the session clock (F1 only sends it when it starts, stops or jumps, so the time left is counted
+between) and everyone's position on each lap for the lap chart, preferring F1's own lap-by-lap
+positions when it sends them. Each event is tagged with the
 people who follow the drivers involved, which is how the screen colours things and filters
 each person's view. It also builds the `view()` the web page draws from. When F1 moves on to
 a new session, the timing is cleared and starts afresh while the feed history is kept.
@@ -66,7 +69,7 @@ the latest view; other addresses serve the track outline, radio clips, predictio
 buttons and the history windows. It also has the command line options (`--demo`, `--share`,
 `--folder` and so on).
 
-**dashboard.html** is the whole screen in one file: the timing tower, the map, the tyre, gap,
+**dashboard.html** is the whole screen in one file: the timing tower and session clock, the map, the tyre, gap, lap chart,
 speed and standings tabs, the feed, the weather window, predictions, the history windows, the
 layout menu and telly mode. It's plain HTML, CSS and JavaScript with no build step. Settings
 like the layout or sector times are remembered per screen in the browser.
@@ -121,7 +124,7 @@ copying `config.example.py` (or copy it yourself), and it's listed in `.gitignor
 
 The `tests` folder checks the parts that matter most, using the demo recordings and made-up
 answers instead of the internet: reading F1's feed, the stewards and penalty handling,
-qualifying cut lines, starting a new session, the passcode gate, the history lookups, and
+qualifying cut lines, starting a new session, the session clock, pit stop times, the lap chart, the passcode gate, the history lookups, and
 the commentary facts, topic choice and timing, what happens when the AI sends back a blank answer, for Claude, Gemini and OpenAI-style answers. They always use `config.example.py`, so
 they give the same result on every computer. GitHub runs them on Windows and Linux every time
 code is pushed. To run them yourself:

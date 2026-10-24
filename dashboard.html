@@ -36,6 +36,12 @@
   .bar { display: flex; align-items: center; gap: 22px; padding: 10px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
   .gp { font-size: 26px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
   .gp small { color: var(--dim); font-weight: 500; margin-left: 10px; }
+  .gp small.clock { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .gp small.clock.low { color: #ff5a5a; }
+  .gp small.clock.stopped { color: #f5c542; }
+  .stoplist { margin-top: 10px; font-size: 16px; color: var(--ink); line-height: 1.6; }
+  .stoplist b { font-weight: 700; }
+  .stoplist .dim { color: var(--dim); }
   .lap { font-family: "JetBrains Mono", monospace; font-size: 20px; }
   .lap b { font-size: 28px; }
   .weather { color: var(--dim); font-size: 17px; }
@@ -178,7 +184,10 @@
   .ev.pit { border-color: var(--blue); } .ev.fast { border-color: var(--purple); }
   .ev.up, .ev.green, .ev.start { border-color: var(--green); } .ev.lead, .ev.finish { border-color: var(--accent); }
   .ev.down { border-color: #b0545e; } .ev.yellow { border-color: var(--yellow); } .ev.rc { border-color: #ff8a3d; }
-  .ev.stewards { border-color: #f5f5f5; background: #171a1e; }
+  .ev.stewards { border-color: var(--red); background: #1b1013; }
+  .ev.stewards .title { color: #ff6b81; }
+  .ev .doclink { display: inline-block; margin-top: 8px; color: #ff6b81; font-size: 15px; border: 1px solid #5a2a33; border-radius: 4px; padding: 2px 10px; text-decoration: none; }
+  .ev .doclink:hover { border-color: #ff6b81; }
   .pen { margin-left: 6px; font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 600; color: #0b0d10;
          background: #f5f5f5; border-radius: 3px; padding: 0 4px; vertical-align: middle; }
   .ev.new { animation: arrive 1.2s ease-out; }
@@ -419,7 +428,7 @@
   <div class="live" id="live"><i></i><span>WAITING</span></div>
 </div>
 <div class="bar">
-  <div class="gp" id="gp">Race Weekend<small id="sess"></small></div>
+  <div class="gp" id="gp">Race Weekend<small id="sess"></small><small id="clock" class="clock hidden" title="Time left in the session, from F1's clock"></small></div>
   <div class="nextchip hidden" id="nextchip"></div>
   <div class="lap" id="lap"></div>
   <button class="wx" id="wx" title="Open the weather"></button>
@@ -514,12 +523,13 @@
   </section>
   <section id="mapsec">
     <div class="head"><span class="tabs" id="tabs">
-        <button data-t="map" class="on">Map</button><button data-t="tyres">Tyres</button><button data-t="gaps">Gaps</button>
+        <button data-t="map" class="on">Map</button><button data-t="tyres">Tyres</button><button data-t="gaps">Gaps</button><button data-t="laps">Lap chart</button>
         <button data-t="speeds">Speeds</button><button data-t="standings">Standings</button><button data-t="weekend">Weekend</button></span>
       <span id="tabnote">Estimated positions</span><span id="trackname" class="hidden">Track</span></div>
     <div class="mapwrap" id="pane-map"><svg id="map" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg></div>
     <div class="pane hidden" id="pane-tyres"></div>
     <div class="pane hidden" id="pane-gaps"></div>
+    <div class="pane hidden" id="pane-laps"></div>
     <div class="pane hidden" id="pane-speeds"></div>
     <div class="pane hidden" id="pane-standings"></div>
     <div class="pane hidden" id="pane-weekend"></div>
@@ -814,6 +824,8 @@ function render(s) {
   loadTrack(s.circuit, s.year);
   document.getElementById("gp").firstChild.textContent = s.meeting || "Race Weekend";
   document.getElementById("sess").textContent = s.session || "";
+  clockState = s.clock ? Object.assign({got: performance.now(), race: s.isRace}, s.clock) : null;
+  tickClock();
   document.getElementById("lap").innerHTML = s.isQuali && s.quali
     ? `<b>Q${s.quali.part}</b>${s.quali.cutAfter ? ` <span style="font-size:16px;color:var(--dim)">top ${s.quali.cutAfter} go through</span>` : ` <span style="font-size:16px;color:var(--dim)">pole shoot-out</span>`}`
     : (s.lap ? `LAP <b>${s.lap}</b>/${s.total || "?"}` : "");
@@ -916,6 +928,7 @@ function render(s) {
       <div class="text">${esc(e.text)}</div>
       ${e.ai ? `<div class="ai">${esc(e.ai)}</div>` : ""}
       ${e.transcript ? `<div class="transcript">“${esc(e.transcript)}”</div>` : ""}
+      ${e.link && /^https:\/\/(www\.)?fia\.com\//.test(e.link) ? `<a class="doclink" href="${esc(e.link)}" target="_blank" rel="noopener">Read the document (PDF)</a>` : ""}
       ${e.kind === "debrief" ? `<button class="copy" data-copy="${esc(e.text)}">Copy</button>` : ""}
       ${["ai", "comm", "debrief"].includes(e.kind) && !document.body.classList.contains("away") ? `<button class="copy share" data-share="${esc(e.text)}" data-title="${esc(e.title)}">Share</button>` : ""}
       ${e.audio ? (e.radioNote ? `<button class="play locked" data-a="${esc(e.audio)}" disabled>${esc(e.radioNote)}</button>` : `<button class="play" data-a="${esc(e.audio)}">▶ Play</button>`) : ""}
@@ -1025,13 +1038,13 @@ function setTab(t, auto) {
   tab = t;
   if (!auto) { tabPicked = true; autoWeekend = false; try { localStorage.setItem("rwd-tab", t); } catch (e) {} }
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
-  for (const k of ["map", "tyres", "gaps", "speeds", "standings", "weekend"])
+  for (const k of ["map", "tyres", "gaps", "laps", "speeds", "standings", "weekend"])
     document.getElementById("pane-" + k).classList.toggle("hidden", k !== t);
   if (lastState) drawTab(lastState);
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => setTab(b.dataset.t));
 const isMine = r => filter === "Everyone" ? r.watchers.length > 0 : r.watchers.includes(filter);
-const NOTES = {map: "Estimated positions", tyres: "Tyre stints", gaps: "Gap to the car ahead", speeds: "Speed trap, best", weekend: "Between sessions"};
+const NOTES = {map: "Estimated positions", tyres: "Tyre stints", gaps: "Gap to the car ahead", laps: "Position on every lap", speeds: "Speed trap, best", weekend: "Between sessions"};
 
 function drawTab(s) {
   document.getElementById("tabnote").textContent =
@@ -1039,6 +1052,7 @@ function drawTab(s) {
     tab === "standings" ? ((s.standings && s.standings.note) || "") : NOTES[tab];
   if (tab === "tyres") drawTyres(s);
   else if (tab === "gaps") drawGaps(s);
+  else if (tab === "laps") drawLaps(s);
   else if (tab === "speeds") drawSpeeds(s);
   else if (tab === "standings") drawStandings(s);
   else if (tab === "weekend") drawWeekend(s);
@@ -1146,6 +1160,87 @@ function drawGaps(s) {
   for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 18) ends[i].y = ends[i - 1].y + 18;
   for (const e of ends) svg += `<circle cx="${e.x}" cy="${Y(e.v)}" r="4" fill="${esc(e.col)}"/><text x="${e.x + 8}" y="${e.y + 5}" fill="${esc(e.col)}" font-size="17" font-weight="700">${esc(e.tla)}</text>`;
   el.innerHTML = `<div class="note">Seconds behind the car in front at the end of each lap. Lower is closer. A jump usually means a pit stop; a gap in the line means they were leading.</div>` + svg + "</svg>";
+}
+
+// ---------- session clock ----------
+let clockState = null;
+function fmtClock(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = String(sec % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${x}` : `${m}:${x}`;
+}
+function tickClock() {
+  const el = document.getElementById("clock"), c = clockState;
+  if (!c) { el.classList.add("hidden"); return; }
+  const left = c.running ? c.left - (performance.now() - c.got) / 1000 * (c.rate || 1) : c.left;
+  // in a race the clock is only the time limit, so only show it when it matters
+  const show = !c.race || !c.running || left < 600;
+  el.classList.toggle("hidden", !show || (left <= 0 && !c.running && c.race));
+  el.classList.toggle("stopped", !c.running && left > 0);
+  el.classList.toggle("low", c.running && left < 120);
+  el.textContent = c.race && c.running ? `${fmtClock(left)} to the time limit`
+    : !c.running && left > 0 ? `${fmtClock(left)} left · clock stopped` : `${fmtClock(left)} left`;
+}
+setInterval(tickClock, 250);
+
+// ---------- lap chart ----------
+function drawLaps(s) {
+  const el = document.getElementById("pane-laps");
+  if (!s.isRace) { el.innerHTML = '<div class="note">The lap chart shows during races and sprints.</div>'; return; }
+  const lc = s.lapChart || {}, nums = Object.keys(lc);
+  if (!nums.length) { el.innerHTML = '<div class="note">The lap chart starts after the first lap.</div>'; return; }
+  const by = Object.fromEntries(s.rows.map(r => [r.num, r]));
+  const N = Math.max(s.rows.length, ...nums.map(n => Math.max(...lc[n].map(p => p[1]))), 2);
+  const lastLap = Math.max(...nums.map(n => lc[n].at(-1)[0]), 1);
+  const maxLap = Math.max(s.total || 0, lastLap, 2);
+  const W = Math.max(560, el.clientWidth - 32), H = Math.max(440, el.clientHeight - 150), L = 48, R = 60, T = 14, B = 42;
+  const X = lap => L + lap / maxLap * (W - L - R);
+  const Y = pos => T + (pos - 1) / (N - 1) * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:100%">`;
+  for (let p = 1; p <= N; p++) {
+    svg += `<line x1="${L}" x2="${X(lastLap)}" y1="${Y(p)}" y2="${Y(p)}" stroke="#1b2129"/>`;
+    if (p === 1 || p % (N > 12 ? 2 : 1) === 0 || p === N)
+      svg += `<text x="${L - 8}" y="${Y(p) + 5}" fill="#8893a0" font-size="14" text-anchor="end">P${p}</text>`;
+  }
+  const step = maxLap > 40 ? 10 : 5;
+  svg += `<text x="${X(0)}" y="${H - B + 22}" fill="#8893a0" font-size="14" text-anchor="middle">Grid</text>`;
+  for (let lap = step; lap <= maxLap; lap += step)
+    svg += `<text x="${X(lap)}" y="${H - B + 22}" fill="#8893a0" font-size="14" text-anchor="middle">${lap}</text>`;
+  svg += `<text x="${(L + W - R) / 2}" y="${H - 4}" fill="#8893a0" font-size="14" text-anchor="middle">Lap</text>`;
+  const mine = nums.filter(n => by[n] && isMine(by[n])), rest = nums.filter(n => !mine.includes(n));
+  const used = {};
+  const line = (n, wide) => {
+    const r = by[n] || {colour: "#888", tla: n}, pts = lc[n];
+    const col = esc(r.colour), dash = wide && used[r.colour] ? ' stroke-dasharray="9 5"' : "";
+    if (wide) used[r.colour] = true;
+    let out = `<polyline fill="none" stroke="${col}"${dash} stroke-opacity="${wide ? 1 : .3}" stroke-width="${wide ? 3.5 : 1.6}" stroke-linejoin="round" points="${pts.map(p => X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join(" ")}"/>`;
+    const end = pts.at(-1);
+    out += `<text x="${X(end[0]) + 7}" y="${Y(end[1]) + 5}" fill="${wide ? col : "#8893a0"}" font-size="${wide ? 15 : 12}" font-weight="${wide ? 700 : 400}">${esc(r.tla)}</text>`;
+    if (wide) {
+      for (const lap of (s.pitLaps || {})[n] || []) {
+        const at = pts.find(p => p[0] === lap) || pts.find(p => p[0] > lap);
+        if (at) out += `<circle cx="${X(at[0])}" cy="${Y(at[1])}" r="5" fill="#0f1318" stroke="${col}" stroke-width="2.5"><title>Pit stop, lap ${lap}</title></circle>`;
+      }
+    }
+    return out;
+  };
+  for (const n of rest) svg += line(n, false);
+  for (const n of mine) svg += line(n, true);
+  svg += "</svg>";
+  el.innerHTML = `<div class="note">Where everyone was at the end of each lap, starting from the grid. Your drivers are the bold lines (dashed when two share a colour); circles are pit stops.</div>` + svg + stopList(s, by);
+}
+
+function stopList(s, by) {
+  const timed = (s.stops || []).filter(x => x.stop || x.lane);
+  if (!timed.length) return "";
+  const desc = x => [x.stop ? `${x.stop.toFixed(1)}s stationary` : "", x.lane ? `${x.lane.toFixed(1)}s in the pit lane` : ""].filter(Boolean).join(", ");
+  const name = n => esc((by[n] || {}).tla || n);
+  let h = '<div class="stoplist">';
+  const quick = timed.filter(x => x.stop).sort((a, b) => a.stop - b.stop)[0];
+  if (quick) h += `<div><span class="dim">Quickest stop:</span> <b>${name(quick.num)}</b> ${quick.stop.toFixed(1)}s on lap ${quick.lap ?? "?"}</div>`;
+  const mine = timed.filter(x => by[x.num] && isMine(by[x.num]));
+  for (const x of mine) h += `<div><b style="color:${esc(by[x.num].colour)}">${name(x.num)}</b> lap ${x.lap ?? "?"}: ${desc(x)}${x.stop >= 4 ? ' <span class="dim">(slow)</span>' : ""}</div>`;
+  return h + "</div>";
 }
 
 function drawSpeeds(s) {

@@ -178,6 +178,10 @@ def pit_story(race, rows):
         line = "%s%s pitted on lap %s from P%d (on %s-lap-old %s), now P%d" % (
             r["name"], _mine(r), s["lap"], s["pos"], s["age"] if s["age"] is not None else "?",
             (s["tyre"] or "unknown").lower(), now)
+        if s.get("stop"):
+            line += "; %.1fs stationary%s" % (s["stop"], " (a slow stop)" if s["stop"] >= 4.0 else "")
+        if s.get("lane"):
+            line += ", %.1fs in the pit lane" % s["lane"]
         if s.get("ahead") and s["ahead"] in by_num:
             a = by_num[s["ahead"]]
             their = stopped_laps.get(a["num"], [])
@@ -200,6 +204,10 @@ def pit_story(race, rows):
             out.append("Most places gained since their first stop: %s (+%d)" % (gains[-1][1], gains[-1][0]))
         if gains[0][0] < 0:
             out.append("Most places lost since their first stop: %s (%d)" % (gains[0][1], gains[0][0]))
+    timed = [(st["stop"], by_num[st["num"]]["name"]) for st in race.stops() if st.get("stop") and st["num"] in by_num]
+    if timed:
+        q = min(timed)
+        out.append("Quickest stop so far: %s, %.1fs stationary" % (q[1], q[0]))
     yet = [r["name"] for r in rows if not r["out"] and not r["stops"]]
     if yet:
         out.append("Still to stop: " + ", ".join(yet))

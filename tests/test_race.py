@@ -109,3 +109,13 @@ def test_qualifying_cut_lines_and_drop_zone(new_race):
     texts = [e["text"] for e in new_race.sent]
     assert "Bortoleto is out in Q1, P20" in texts
     assert any(t.startswith("Hulkenberg is in the drop zone") for t in texts)
+
+
+def test_investigated_after_the_session_is_labelled_so(new_race):
+    # real wording from Austin FP3
+    _stewards(new_race, [
+        "TURN 12 INCIDENT INVOLVING CARS 5 (BOR) AND 44 (HAM) NOTED - IMPEDING (13:22:03)",
+        "FIA STEWARDS: TURN 12 INCIDENT INVOLVING CARS 5 (BOR) AND 44 (HAM) WILL BE INVESTIGATED AFTER THE SESSION - IMPEDING (13:22:03)"])
+    new_race.update("DriverList", {"5": {"Tla": "BOR", "LastName": "Bortoleto", "TeamName": "Audi"},
+                                   "44": {"Tla": "HAM", "LastName": "Hamilton", "TeamName": "Ferrari"}})
+    assert titles(new_race)[-1] == "STEWARDS · AFTER THE SESSION"
