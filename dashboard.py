@@ -253,6 +253,18 @@ def make_handler(race, radio, preds, gate):
                 except Exception:
                     topic = None
                 return self._json(ask_now(topic if isinstance(topic, str) else None))
+            if self.path == "/share/prepare":
+                try:
+                    n = int(self.headers.get("Content-Length") or 0)
+                    text = str((json.loads(self.rfile.read(min(n, 20000)) or b"{}") or {}).get("text") or "")[:4000]
+                except Exception:
+                    return self._json({"error": "Couldn't read that"}, 400)
+                try:
+                    return self._json({"text": commentary.public_version(text)})
+                except Exception as e:
+                    log.info("Share version failed: %s", e)
+                    return self._json({"error": "Couldn't take the names out just now (%s). You can edit them out by hand." % e,
+                                       "text": text})
             if self.path == "/ai/commentary" and gate.is_remote(self):
                 return self._json({"error": "Only James can switch that"}, 403)
             if self.path == "/ai/commentary":

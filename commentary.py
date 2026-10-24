@@ -6,6 +6,7 @@ them into a couple of sentences. That keeps the commentary to what the timing ac
 we know which tyre and how old it is, but not wear or temperatures, so it must never guess those.
 """
 import logging
+import re
 import threading
 import time
 
@@ -28,7 +29,8 @@ SC_FACTOR = 0.55        # a stop under the safety car costs roughly half the usu
 RULES = ("You're a calm, plain-spoken F1 commentator talking to a family watching together. {people}. "
          "Write 2 or 3 short sentences, like a TV commentator would say them. Use ONLY the facts below: "
          "don't invent tyre wear, temperatures, team radio, strategy plans or anything not given. "
-         "Where it fits, mention the family's drivers by name. No hype words, no emojis, no bullet points, "
+         "Where it fits, talk about the family's drivers by the drivers' names, but never use the family's own "
+         "names (so it can be shared). No hype words, no emojis, no bullet points, "
          "no lists, and don't start with 'So' or 'Well'.")
 
 
@@ -417,3 +419,27 @@ class Commentator:
         self.last_topic = topic
         self.emit(topic, text)
         return topic, text
+
+
+def family_names():
+    return [n for n in config.PEOPLE if n]
+
+
+def mentions_family(text):
+    return any(re.search(r"\b%s\b" % re.escape(n), text or "", re.I) for n in family_names())
+
+
+def public_version(text):
+    """The same words for posting publicly, with the family's names taken out.
+    If no names appear it's left exactly as it is; otherwise the AI rewrites it."""
+    if not mentions_family(text):
+        return text
+    from notify import ask_claude
+    out = ask_claude(
+        "Rewrite this F1 race comment for a public social media post. Take out these people's names and "
+        "anything said about them personally: %s. Keep every fact about the race and the drivers exactly as "
+        "it is, keep it about the same length, add nothing new, no hashtags, no emojis. Reply with only the "
+        "rewritten text.\n\n%s" % (", ".join(family_names()), text), max_tokens=1200)
+    if mentions_family(out):
+        raise RuntimeError("couldn't take all the names out")
+    return out

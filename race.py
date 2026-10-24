@@ -586,7 +586,9 @@ class Race:
                 close = 0 < iv <= config.BATTLE_GAP
                 was_close = p.get("battle") == ahead
                 if close and not was_close and ahead and (lap_now := self.lap()[0]) and int(lap_now) > 1:
-                    self.emit("%s has closed to %.1fs behind %s, fighting for P%s" % (self.name(n), iv, self.name(ahead), int(pos) - 1),
+                    how = ("is right on the back of %s" % self.name(ahead)) if iv < 0.1 else \
+                          ("has closed to %.1fs behind %s" % (iv, self.name(ahead)))
+                    self.emit("%s %s, fighting for P%s" % (self.name(n), how, int(pos) - 1),
                               who=who, title="BATTLE", kind="battle", key="battle-%s-%s" % (n, ahead), wait=600)
                 if close:
                     p["battle"] = ahead

@@ -346,6 +346,15 @@ race read, a qualifying read against the cut, or a practice read of times and ty
 a 20 second gap between presses so a double tap doesn't cost twice. If the AI doesn't answer,
 the reason shows in the feed and the black window.
 
+### Sharing a comment
+
+AI reads, commentary and the race debrief have a Share button. It opens a window with the text
+ready to post, with the family's names taken out first (the AI rewrites it only if a name is in
+there; the commentary is told not to use them anyway). Change the wording if you like, tick
+"Add a link to the project on GitHub" if you want, then pick X, Facebook, LinkedIn or WhatsApp.
+X opens with the post written; Facebook and LinkedIn don't allow that, so the text is copied for
+you to paste. People watching through the sharing link don't see the Share button.
+
 ### Commentary and asking about a topic
 
 With "Commentary on", the AI adds a couple of sentences to the feed by itself: every 5 laps or

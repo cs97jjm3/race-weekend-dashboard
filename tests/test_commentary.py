@@ -141,3 +141,17 @@ def test_rain_forecast_lookup_builds_its_address(new_race, monkeypatch):
     f = real.forecast(new_race)
     assert "latitude=30.1328&longitude=-97.6411" in asked["url"]
     assert f == {"chance": 55, "mm": 0.6}
+
+
+def test_share_version_takes_the_family_out(monkeypatch):
+    assert commentary.public_version("Leclerc leads.") == "Leclerc leads."     # nothing to change, no AI asked
+    monkeypatch.setattr(notify, "ask_claude", lambda prompt, **k: "Leclerc leads and Hulkenberg is fourth.")
+    out = commentary.public_version("James will love this: Leclerc leads and Ed's man Hulkenberg is fourth.")
+    assert "James" not in out and "Ed" not in out.split()
+
+
+def test_share_version_refuses_if_names_are_still_there(monkeypatch):
+    import pytest
+    monkeypatch.setattr(notify, "ask_claude", lambda prompt, **k: "James will love this.")
+    with pytest.raises(RuntimeError):
+        commentary.public_version("James will love this.")
