@@ -10,6 +10,10 @@ free live timing. Tested live at the 2026 United States Grand Prix in Austin.
 
 ![The dashboard during second practice at Austin](docs/austin-fp2.png)
 
+<img src="static/logo.svg" width="72" align="right" alt="The logo: a race circuit">
+
+The logo is a race circuit with four letters hidden in the track. Can you spot them?
+
 How it's put together: [HOW-IT-WORKS.md](HOW-IT-WORKS.md). This is a home project and isn't
 connected to Formula 1 in any way.
 
