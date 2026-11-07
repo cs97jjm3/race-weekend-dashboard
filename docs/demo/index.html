@@ -40,6 +40,29 @@
   .gp small.clock { color: var(--ink); font-variant-numeric: tabular-nums; }
   .gp small.clock.low { color: #ff5a5a; }
   .gp small.clock.stopped { color: #f5c542; }
+  .h2hpick { display: flex; gap: 10px; align-items: center; margin: 4px 0 12px; font-size: 16px; }
+  .h2hpick select { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; }
+  .h2hcards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .h2hcard { background: var(--panel); border: 1px solid var(--line); border-top: 5px solid #888; border-radius: 8px; padding: 10px 14px; }
+  .h2hname { font-size: 18px; } .h2hpos { font: 700 34px/1.1 "JetBrains Mono", monospace; margin: 4px 0 6px; }
+  .h2hstat { display: flex; justify-content: space-between; font-size: 15px; padding: 3px 0; border-top: 1px solid var(--line); }
+  .h2hstat span { color: var(--dim); } .h2hstat b { font-family: "JetBrains Mono", monospace; font-weight: 600; }
+  .h2hverdict { margin: 12px 0 4px; font-size: 18px; line-height: 1.4; }
+  .h2hh { margin: 14px 0 6px; color: var(--dim); font-size: 13px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; }
+  .h2htable { font-family: "JetBrains Mono", monospace; font-size: 15px; } .h2htable td, .h2htable th { padding: 3px 14px 3px 0; text-align: left; }
+  .h2htable th { color: var(--dim); font-weight: 500; } .h2htable .quick { color: #5fd38a; } .h2htable .dim { color: var(--dim); }
+  .brief { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 8px 14px 10px; margin: 12px 0; font-size: 16px; line-height: 1.6; }
+  .brief h4 { margin: 2px 0 4px; }
+  .pwgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin-top: 10px; }
+  .pwcard { border: 1px solid var(--line); border-left: 5px solid #888; border-radius: 8px; padding: 10px 14px; background: var(--panel); }
+  .pwhead { font-size: 17px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+  .pwpos { font-family: "JetBrains Mono", monospace; color: var(--dim); }
+  .pwtyre { margin-left: auto; color: var(--dim); font-size: 14px; }
+  .pwbig { font-size: 22px; margin: 8px 0 4px; }
+  .pwbig b { font-size: 26px; }
+  .pwline { font-size: 15px; color: var(--ink); margin-top: 3px; }
+  .pwgood { color: #5fd38a; font-weight: 600; } .pwbad { color: #ff7a7a; } .pwwarn { color: #f5c542; font-weight: 600; }
+  .pwsc { display: inline-block; background: #f5c542; color: #111; font-weight: 700; border-radius: 6px; padding: 3px 10px; margin-top: 8px; }
   .stoplist { margin-top: 10px; font-size: 16px; color: var(--ink); line-height: 1.6; }
   .stoplist b { font-weight: 700; }
   .stoplist .dim { color: var(--dim); }
@@ -82,6 +105,14 @@
   .filters .show button.more { padding: 2px 10px; margin-left: -7px; border-left-width: 1px; border-radius: 0 4px 4px 0; }
   #aiask { border-radius: 4px 0 0 4px; }
   body.away #aicomm { display: none; }
+  body.public #predbtn, body.public #filters, body.public #aictl, body.public #sharing, body.public .copy.share { display: none !important; }
+  .publicbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 20px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--dim); position: relative; }
+  .publicbar #followbtn { background: var(--accent); color: #0b0d10; border: 0; border-radius: 6px; padding: 5px 12px; font: 600 14px inherit; cursor: pointer; }
+  .publicbar .pcredit { margin-left: auto; } .publicbar a { color: var(--ink); }
+  #followpop { display: none; position: absolute; top: 44px; left: 20px; z-index: 900; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; max-height: 70vh; overflow: auto; width: min(420px, 90vw); box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  #followpop.open { display: block; } #followpop label { display: block; padding: 4px 0; color: var(--ink); font-size: 15px; cursor: pointer; }
+  #followpop .fhead { color: var(--dim); font-size: 13px; margin-bottom: 6px; } #followpop .d { color: var(--dim); font-size: 13px; }
+  #followpop button { margin-top: 8px; background: var(--accent); color: #0b0d10; border: 0; border-radius: 6px; padding: 6px 16px; font-weight: 600; cursor: pointer; }
   #topicpop { position: absolute; z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px;
               box-shadow: 0 10px 30px rgba(0,0,0,.5); display: none; min-width: 230px; }
   #topicpop.open { display: block; }
@@ -342,6 +373,14 @@
   .standings td { padding: 4px 6px; }
   .standings .gain { color: var(--green); font-family: "JetBrains Mono", monospace; font-size: 14px; }
   .standings .mv { font-size: 13px; width: 26px; text-align: center; }
+  .standings tr.rose td { background: rgba(80, 200, 120, .14); }
+  .standings tr.fell td { background: rgba(255, 90, 90, .12); }
+  .titlebox { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 6px 0 14px; }
+  .titlebox h3 { margin: 0 0 4px; color: var(--dim); font-size: 13px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; }
+  .titlebox .thead { font-size: 17px; margin-bottom: 6px; }
+  .titlebox .tcs { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 17px; font-family: "JetBrains Mono", monospace; }
+  .titlebox .tcs small { color: var(--dim); font-size: 13px; }
+  .titlebox .tout { margin-top: 6px; color: #ff8a8a; font-size: 15px; }
   .mv.up { color: var(--green); } .mv.down { color: #ff6b81; }
   .standings h3, .predbody h3 { margin: 4px 0 8px; color: var(--dim); font-size: 14px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; }
   #gapsvg text { font-family: "Barlow Condensed", sans-serif; }
@@ -429,6 +468,12 @@
   </div>
   <div class="live" id="live"><i></i><span>WAITING</span></div>
 </div>
+<div class="publicbar hidden" id="publicbar">
+  <button id="followbtn" onclick="openFollow()">Pick your drivers</button>
+  <span class="pnote" id="pnote">Live from F1's timing. Not connected to Formula 1 or the FIA.</span>
+  <span class="pcredit">Built at home by James Murrell · <a href="https://edsf1.jmmcp.uk/" target="_blank" rel="noopener">How it was made</a> · <a href="https://github.com/cs97jjm3/race-weekend-dashboard" target="_blank" rel="noopener">Code on GitHub</a> · <a href="https://www.linkedin.com/in/james-murrell-900791176/" target="_blank" rel="noopener">LinkedIn</a></span>
+  <div id="followpop" role="dialog" aria-label="Your drivers"></div>
+</div>
 <div class="bar">
   <div class="gp" id="gp">Race Weekend<small id="sess"></small><small id="clock" class="clock hidden" title="Time left in the session, from F1's clock"></small></div>
   <div class="nextchip hidden" id="nextchip"></div>
@@ -500,7 +545,7 @@
         <div class="rainbars" id="rainbars"></div>
         <div class="rainlabels" id="rainlabels"></div>
         <div class="chance" id="chance"></div>
-        <div class="credit">Track conditions from F1 timing. Forecast from Open-Meteo. Radar from RainViewer, map from Esri. <span id="ringnote">The circle is 5 miles around the circuit.</span> Radar detail is coarse at this zoom, so rain shows as soft blocks.</div>
+        <div class="credit">Track conditions from F1 timing. Forecast from Open-Meteo. Radar from <span id="radarsrc">LibreWXR</span>, map from Esri. <span id="ringnote">The circle is 5 miles around the circuit.</span> Frames marked Forecast are where the rain is expected to go next; outside Europe, North America and Japan the radar is estimated from satellites and weather models, so treat it as a guide.</div>
       </div>
     </div>
   </div>
@@ -525,13 +570,15 @@
   </section>
   <section id="mapsec">
     <div class="head"><span class="tabs" id="tabs">
-        <button data-t="map" class="on">Map</button><button data-t="tyres">Tyres</button><button data-t="gaps">Gaps</button><button data-t="laps">Lap chart</button>
+        <button data-t="map" class="on">Map</button><button data-t="tyres">Tyres</button><button data-t="gaps">Gaps</button><button data-t="laps">Lap chart</button><button data-t="pitwall">Pit wall</button><button data-t="h2h">Head to head</button>
         <button data-t="speeds">Speeds</button><button data-t="standings">Standings</button><button data-t="weekend">Weekend</button></span>
       <span id="tabnote">Estimated positions</span><span id="trackname" class="hidden">Track</span></div>
     <div class="mapwrap" id="pane-map"><svg id="map" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg></div>
     <div class="pane hidden" id="pane-tyres"></div>
     <div class="pane hidden" id="pane-gaps"></div>
     <div class="pane hidden" id="pane-laps"></div>
+    <div class="pane hidden" id="pane-pitwall"></div>
+    <div class="pane hidden" id="pane-h2h"></div>
     <div class="pane hidden" id="pane-speeds"></div>
     <div class="pane hidden" id="pane-standings"></div>
     <div class="pane hidden" id="pane-weekend"></div>
@@ -572,6 +619,7 @@ function drawWx(s) {
 
 // ---------- weather window ----------
 let leaflet = null, radarMap = null, radarFrames = [], radarLayers = [], radarIdx = 0, radarTimer = null, radarFor = null, forecastFor = null;
+let radarAt = 0, forecastAt = 0;      // when each was last fetched, so they refresh rather than go stale
 function loadScript(src) { return new Promise((ok, bad) => { const e = document.createElement("script"); e.src = src; e.onload = ok; e.onerror = bad; document.head.appendChild(e); }); }
 function loadCss(href) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = href; document.head.appendChild(l); }
 function drawNow(s) {
@@ -607,7 +655,7 @@ async function openWeather() {
     if (!radarMap) {
       radarMap = leaflet.map("radar", {zoomControl: true, attributionControl: true}).setView([lat, lon], 10);
       leaflet.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-        {maxZoom: 13, attribution: "Map © Esri, HERE, Garmin, OpenStreetMap · radar © RainViewer"}).addTo(radarMap);
+        {maxZoom: 13, attribution: "Map © Esri, HERE, Garmin, OpenStreetMap"}).addTo(radarMap);
       leaflet.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
         {maxZoom: 13, zIndex: 10}).addTo(radarMap);
     }
@@ -620,21 +668,49 @@ async function openWeather() {
       document.getElementById("ringnote").textContent = `The circle is ${miles} miles around the circuit.`;
       leaflet.circleMarker([lat, lon], {radius: 6, color: "#0b0d10", weight: 2, fillColor: "#c8f031", fillOpacity: 1}).addTo(radarMap).bindTooltip(s.location || "Circuit");
       await loadRadar();
+    } else if (Date.now() - radarAt > 5 * 60000) {
+      await loadRadar();            // RainViewer adds a new picture every 10 minutes
     }
   } catch (e) {
     document.getElementById("radarbar").textContent = "Couldn't load the radar map. Is the laptop online?";
   }
 }
+// Radar: LibreWXR first (free, no key, and it has a forecast for the next hour), RainViewer if
+// LibreWXR doesn't answer. Both use the same layout of frames and map pieces.
+const RADAR_SOURCES = [
+  {name: "LibreWXR", url: "https://api.librewxr.net/public/weather-maps.json", zoom: 10, credit: "radar © LibreWXR (CC BY 4.0)"},
+  {name: "RainViewer", url: "https://api.rainviewer.com/public/weather-maps.json", zoom: 7, credit: "radar © RainViewer"},
+];
+let radarSource = null, radarNowIdx = 0;
 async function loadRadar() {
-  const info = await (await fetch("https://api.rainviewer.com/public/weather-maps.json")).json();
-  radarFrames = (info.radar && info.radar.past) || [];
+  let info = null, src = null;
+  for (const s of RADAR_SOURCES) {
+    try {
+      const r = await fetch(s.url, {cache: "no-store"});
+      const d = r.ok ? await r.json() : null;
+      if (d && d.host && d.radar && (d.radar.past || []).length) { info = d; src = s; break; }
+    } catch (e) {}
+  }
+  if (!info) throw new Error("no radar");
+  radarAt = Date.now(); radarSource = src;
+  const past = (info.radar.past || []).map(f => Object.assign({}, f, {ahead: false}));
+  const next = (info.radar.nowcast || []).map(f => Object.assign({}, f, {ahead: true}));
+  radarFrames = past.concat(next);
   radarLayers.forEach(l => radarMap.removeLayer(l));
   radarLayers = radarFrames.map(f => leaflet.tileLayer(`${info.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`,
-    {maxNativeZoom: 7, maxZoom: 13, opacity: 0, zIndex: 5}).addTo(radarMap));
-  radarIdx = radarFrames.length - 1;
+    {maxNativeZoom: src.zoom, maxZoom: 13, opacity: 0, zIndex: 5, attribution: src.credit}).addTo(radarMap));
+  radarNowIdx = past.length - 1;
+  radarIdx = radarNowIdx;
+  document.getElementById("radarsrc").textContent = src.name + (next.length ? " (with a forecast for the next hour)" : "");
   showFrame();
   if (radarTimer) clearInterval(radarTimer);
-  radarTimer = setInterval(() => { if (document.getElementById("wxmodal").classList.contains("open") && playing) { radarIdx = (radarIdx + 1) % radarFrames.length; showFrame(); } }, 700);
+  // play through the last couple of hours and on into the forecast, pausing on "now" each time round
+  let hold = 0;
+  radarTimer = setInterval(() => {
+    if (!document.getElementById("wxmodal").classList.contains("open") || !playing) return;
+    if (radarIdx === radarNowIdx && hold < 2) { hold++; return; }
+    hold = 0; radarIdx = (radarIdx + 1) % radarFrames.length; showFrame();
+  }, 700);
 }
 let playing = true;
 function showFrame() {
@@ -642,17 +718,20 @@ function showFrame() {
   const f = radarFrames[radarIdx];
   if (!f) { document.getElementById("radarbar").textContent = "No radar frames available right now"; return; }
   const t = new Date(f.time * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
-  const ago = Math.round((Date.now() / 1000 - f.time) / 60);
-  document.getElementById("radarbar").innerHTML = `<button id="rplay">${playing ? "Pause" : "Play"}</button> Radar ${t} <span style="color:var(--dim)">(${ago} min ago, your time)</span>`;
-  document.getElementById("rplay").onclick = () => { playing = !playing; if (!playing) { radarIdx = radarFrames.length - 1; } showFrame(); };
+  const mins = Math.round((f.time - Date.now() / 1000) / 60);
+  const label = f.ahead
+    ? `<b style="color:var(--accent, #c8f031)">Forecast ${t}</b> <span style="color:var(--dim)">(in ${Math.max(0, mins)} min, your time)</span>`
+    : `Radar ${t} <span style="color:var(--dim)">(${-mins} min ago, your time)</span>`;
+  document.getElementById("radarbar").innerHTML = `<button id="rplay">${playing ? "Pause" : "Play"}</button> ${label}`;
+  document.getElementById("rplay").onclick = () => { playing = !playing; if (!playing) { radarIdx = radarNowIdx; } showFrame(); };
 }
 async function loadForecast(lat, lon) {
   const key = lat + "," + lon;
-  if (forecastFor === key) return;
+  if (forecastFor === key && Date.now() - forecastAt < 10 * 60000) return;   // new forecast every 10 minutes
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&minutely_15=precipitation&forecast_minutely_15=12&hourly=precipitation_probability&forecast_hours=3&timezone=auto`;
     const d = await (await fetch(url)).json();
-    forecastFor = key;
+    forecastFor = key; forecastAt = Date.now();
     const mm = (d.minutely_15 && d.minutely_15.precipitation) || [];
     const times = (d.minutely_15 && d.minutely_15.time) || [];
     const max = Math.max(0.5, ...mm);
@@ -671,6 +750,13 @@ async function loadForecast(lat, lon) {
     document.getElementById("verdict").textContent = "Couldn't get the forecast. Is the laptop online?";
   }
 }
+setInterval(() => {
+  const open = document.getElementById("wxmodal").classList.contains("open");
+  if (open && lastState && lastState.coords) {
+    loadForecast(...lastState.coords);
+    if (radarMap && Date.now() - radarAt > 5 * 60000) loadRadar().catch(() => {});
+  }
+}, 60000);
 function closeWeather() { document.getElementById("wxmodal").classList.remove("open"); }
 try { filter = localStorage.getItem("rwd-filter") || "Everyone"; } catch (e) {}
 let people = {};
@@ -691,7 +777,7 @@ function drawFilters() {
     drawFilters(); refresh();
   });
   document.getElementById("key").innerHTML = Object.keys(people).map(p =>
-    `<span>${dots([p])} ${esc(p)}'s drivers</span>`).join("");
+    `<span>${dots([p])} ${p === "You" ? "Your" : esc(p) + "'s"} drivers</span>`).join("");
 }
 
 // ---------- map ----------
@@ -822,6 +908,7 @@ function drawFlags(s) {
 
 // ---------- page ----------
 function render(s) {
+  if (s.viewer === "public") s = publicView(s);
   if (JSON.stringify(Object.keys(s.people)) !== JSON.stringify(Object.keys(people))) { people = s.people; drawFilters(); }
   loadTrack(s.circuit, s.year);
   document.getElementById("gp").firstChild.textContent = s.meeting || "Race Weekend";
@@ -872,7 +959,7 @@ function render(s) {
   let cls = "off", txt = "NO DATA";
   if (s.replay) { cls = "replay"; txt = `REPLAY ${s.replay}×`; }
   else if (s.age === null) { cls = ""; txt = "CONNECTING"; }
-  else if (s.age < 15) { cls = "on"; txt = "LIVE"; }
+  else if (s.age < 15) { cls = "on"; txt = s.delay ? `LIVE · ${Math.round(s.delay)}s BEHIND` : "LIVE"; }
   else if (s.age < 60) { cls = "quiet"; txt = `QUIET ${Math.round(s.age)}s`; }
   else if (!s.rows.length) { cls = ""; txt = "WAITING FOR SESSION"; }
   live.className = "live " + cls; live.querySelector("span").textContent = txt;
@@ -952,7 +1039,10 @@ function render(s) {
   });
 }
 
+let lastPoll = 0;
 async function refresh() {
+  if (document.body.classList.contains("public") && Date.now() - lastPoll < 1900) return;   // public: every 2 seconds
+  lastPoll = Date.now();
   try {
     const r = await fetch("/state", {cache: "no-store"});
     render(await r.json());
@@ -1041,13 +1131,13 @@ function setTab(t, auto) {
   tab = t;
   if (!auto) { tabPicked = true; autoWeekend = false; try { localStorage.setItem("rwd-tab", t); } catch (e) {} }
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
-  for (const k of ["map", "tyres", "gaps", "laps", "speeds", "standings", "weekend"])
+  for (const k of ["map", "tyres", "gaps", "laps", "pitwall", "h2h", "speeds", "standings", "weekend"])
     document.getElementById("pane-" + k).classList.toggle("hidden", k !== t);
   if (lastState) drawTab(lastState);
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => setTab(b.dataset.t));
 const isMine = r => filter === "Everyone" ? r.watchers.length > 0 : r.watchers.includes(filter);
-const NOTES = {map: "Estimated positions", tyres: "Tyre stints", gaps: "Gap to the car ahead", laps: "Position on every lap", speeds: "Speed trap, best", weekend: "Between sessions"};
+const NOTES = {map: "Estimated positions", tyres: "Tyre stints", gaps: "Gap to the car ahead", laps: "Position on every lap", pitwall: "If they pitted this lap", h2h: "Any two drivers side by side", speeds: "Speed trap, best", weekend: "Between sessions"};
 
 function drawTab(s) {
   document.getElementById("tabnote").textContent =
@@ -1056,6 +1146,8 @@ function drawTab(s) {
   if (tab === "tyres") drawTyres(s);
   else if (tab === "gaps") drawGaps(s);
   else if (tab === "laps") drawLaps(s);
+  else if (tab === "pitwall") drawPitWall(s);
+  else if (tab === "h2h") drawH2H(s);
   else if (tab === "speeds") drawSpeeds(s);
   else if (tab === "standings") drawStandings(s);
   else if (tab === "weekend") drawWeekend(s);
@@ -1085,6 +1177,18 @@ function weekendTick(s) {
   if (!live && !tabPicked && tab !== "weekend") { autoWeekend = true; setTab("weekend", true); }
   if (live && autoWeekend) { autoWeekend = false; let t = "map"; try { t = localStorage.getItem("rwd-tab") || "map"; } catch (e) {} setTab(t, true); }
 }
+// Race morning briefing, from /briefing (refreshed every 10 minutes while the Weekend tab is used)
+let briefingData = null, briefingAt = 0;
+function briefingCard() {
+  if (Date.now() - briefingAt > 10 * 60000) {
+    briefingAt = Date.now();
+    fetch("/briefing", {cache: "no-store"}).then(r => r.json()).then(d => { briefingData = d; if (lastState && tab === "weekend") drawWeekend(lastState); }).catch(() => {});
+  }
+  const b = briefingData;
+  if (!b || b.error || !b.lines || !b.lines.length) return "";
+  return `<div class="brief"><h4>${b.raceDay ? "Race day briefing" : "Race briefing so far"}</h4>
+    ${b.lines.map(l => `<div>${esc(l)}</div>`).join("")}</div>`;
+}
 function drawWeekend(s) {
   const el = document.getElementById("pane-weekend"), w = weekendData;
   if (!w) { el.innerHTML = '<div class="wk"><div class="sub">Getting the timetable…</div></div>'; return; }
@@ -1097,6 +1201,7 @@ function drawWeekend(s) {
       <div class="when">${esc(dayTime(w.next.start))} your time</div>
       ${o ? `<div class="wx">Forecast at the start: ${Math.round(o.temp)}°C, ${o.rain}% chance of rain, wind ${Math.round(o.wind)} mph</div>` : ""}</div>`;
   }
+  h += briefingCard();
   h += `<h4>The weekend, your time</h4><div class="tt">` + w.sessions.map(x =>
     `<span class="${x.status === "done" ? "done" : ""}">${esc(x.name)}</span><span class="d ${x.status === "done" ? "done" : ""}">${esc(dayTime(x.start))}</span>
      <span>${x.status === "live" ? '<span class="tag live">Live</span>' : (w.next && x.name === w.next.name && x.status === "next") ? '<span class="tag next">Next</span>' : x.status === "done" ? '<span class="d">done</span>' : ""}</span>`).join("") + `</div>`;
@@ -1165,6 +1270,50 @@ function drawGaps(s) {
   el.innerHTML = `<div class="note">Seconds behind the car in front at the end of each lap. Lower is closer. A jump usually means a pit stop; a gap in the line means they were leading.</div>` + svg + "</svg>";
 }
 
+// ---------- the public page ----------
+// Visitors pick their own drivers; that's kept in their browser and used to colour everything
+// the same way the family's drivers are coloured at home.
+let follow = new Set();
+try { follow = new Set(JSON.parse(localStorage.getItem("rwd-follow") || "[]")); } catch (e) {}
+const YOU = "#c8f031";
+function publicView(s) {
+  if (!document.body.classList.contains("public")) {
+    document.body.classList.add("public");
+    document.getElementById("publicbar").classList.remove("hidden");
+  }
+  const names = new Set(), codes = new Set();
+  s.rows.forEach(r => {
+    const mine = follow.has(r.tla);
+    r.watchers = mine ? ["You"] : [];
+    if (mine) { names.add(r.name); codes.add(r.tla); }
+  });
+  s.people = follow.size ? {You: YOU} : {};
+  const hit = t => [...names].some(n => n && (t || "").includes(n));
+  (s.events || []).forEach(e => { e.who = hit(e.text) ? ["You"] : []; });
+  if (s.pitWall) s.pitWall = follow.size ? s.pitWall.filter(c => codes.has(c.tla)) : s.pitWall.slice(0, 3);
+  const st = s.standings || {};
+  (st.drivers || []).forEach(d => { d.watchers = codes.has(d.code) ? ["You"] : []; });
+  ((st.title || {}).contenders || []).forEach(c => { c.watchers = codes.has(c.code) ? ["You"] : []; });
+  document.getElementById("pnote").textContent = "Live from F1's timing" +
+    (s.delay ? `, ${Math.round(s.delay)} seconds behind to match the TV` : "") + ". Not connected to Formula 1 or the FIA.";
+  document.getElementById("followbtn").textContent = follow.size ? `Your drivers: ${[...follow].join(", ")}` : "Pick your drivers";
+  return s;
+}
+function openFollow() {
+  const pop = document.getElementById("followpop");
+  const rows = [...((lastState && lastState.rows) || [])].sort((a, b) => a.tla.localeCompare(b.tla));
+  pop.innerHTML = `<div class="fhead">Follow up to five drivers. They're picked out on the map, the timing and the feed.</div>` +
+    rows.map(r => `<label><input type="checkbox" value="${esc(r.tla)}" ${follow.has(r.tla) ? "checked" : ""}> <b style="color:${esc(r.colour)}">${esc(r.tla)}</b> ${esc(r.name)} <span class="d">${esc(r.team)}</span></label>`).join("") +
+    `<button id="followdone">Done</button>`;
+  pop.classList.add("open");
+  pop.querySelectorAll("input").forEach(i => i.onchange = () => {
+    if (i.checked && follow.size >= 5) { i.checked = false; return; }
+    i.checked ? follow.add(i.value) : follow.delete(i.value);
+    try { localStorage.setItem("rwd-follow", JSON.stringify([...follow])); } catch (e) {}
+  });
+  document.getElementById("followdone").onclick = () => { pop.classList.remove("open"); lastPoll = 0; refresh(); };
+}
+
 // ---------- session clock ----------
 let clockState = null;
 function fmtClock(sec) {
@@ -1178,7 +1327,7 @@ function tickClock() {
   const left = c.running ? c.left - (performance.now() - c.got) / 1000 * (c.rate || 1) : c.left;
   // in a race the clock is only the time limit, so only show it when it matters
   const show = !c.race || !c.running || left < 600;
-  el.classList.toggle("hidden", !show || (left <= 0 && !c.running && c.race));
+  el.classList.toggle("hidden", !show || (left <= 0 && !c.running));     // session over: nothing to count
   el.classList.toggle("stopped", !c.running && left > 0);
   el.classList.toggle("low", c.running && left < 120);
   el.textContent = c.race && c.running ? `${fmtClock(left)} to the time limit`
@@ -1233,6 +1382,117 @@ function drawLaps(s) {
   el.innerHTML = `<div class="note">Where everyone was at the end of each lap, starting from the grid. Your drivers are the bold lines (dashed when two share a colour); circles are pit stops.</div>` + svg + stopList(s, by);
 }
 
+// ---------- head to head ----------
+let h2h = {a: "", b: "", data: null, at: 0, key: ""};
+try { Object.assign(h2h, JSON.parse(localStorage.getItem("rwd-h2h") || "{}"), {data: null, at: 0, key: ""}); } catch (e) {}
+function fmtLap(x) { if (!x) return "–"; const m = Math.floor(x / 60), sec = (x - m * 60).toFixed(3).padStart(6, "0"); return m ? `${m}:${sec}` : (+sec).toFixed(3); }
+async function drawH2H(s) {
+  const el = document.getElementById("pane-h2h");
+  const rows = [...s.rows].sort((x, y) => x.pos - y.pos);
+  if (!rows.length) { el.innerHTML = '<div class="note">Waiting for the session to start.</div>'; return; }
+  const nums = rows.map(r => r.num);
+  if (!nums.includes(h2h.a) || !nums.includes(h2h.b) || h2h.a === h2h.b) {
+    const mine = rows.filter(r => isMine(r));
+    const first = mine[0] || rows[0];
+    const ahead = rows.find(r => r.pos === first.pos - 1), behind = rows.find(r => r.pos === first.pos + 1);
+    h2h.a = first.num; h2h.b = (mine[1] || ahead || behind || rows[1] || first).num;
+  }
+  const key = h2h.a + "-" + h2h.b;
+  if (key !== h2h.key || Date.now() - h2h.at > 4000) {
+    h2h.key = key; h2h.at = Date.now();
+    try { h2h.data = await (await fetch(`/h2h?a=${encodeURIComponent(h2h.a)}&b=${encodeURIComponent(h2h.b)}`, {cache: "no-store"})).json(); }
+    catch (e) { h2h.data = {error: "Couldn't reach the dashboard program"}; }
+  }
+  if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#pane-h2h select")) return;
+  const d = h2h.data || {};
+  const opts = sel => rows.map(r => `<option value="${esc(r.num)}" ${r.num === sel ? "selected" : ""}>P${r.pos} ${esc(r.tla)} ${esc(r.name)}</option>`).join("");
+  let html = `<div class="h2hpick"><select id="h2ha">${opts(h2h.a)}</select><span>v</span><select id="h2hb">${opts(h2h.b)}</select></div>`;
+  if (d.error || !d.a) { el.innerHTML = html + `<div class="note">${esc(d.error || "Loading…")}</div>`; wireH2H(); return; }
+  const A = d.a, B = d.b;
+  const card = (r, best) => `<div class="h2hcard" style="border-top-color:${esc(r.colour)}">
+    <div class="h2hname"><b style="color:${esc(r.colour)}">${esc(r.tla)}</b> ${esc(r.name)}</div>
+    <div class="h2hpos">P${r.pos}</div>
+    <div class="h2hstat"><span>Gap to leader</span><b>${r.pos === 1 ? "Leader" : esc(r.gap || "–")}</b></div>
+    <div class="h2hstat"><span>Tyres</span><b>${r.tyre ? `<span class="tyre ${esc(r.tyre)}">${esc(r.tyre[0])}</span> ${r.tyreAge ?? "?"} laps` : "–"}</b></div>
+    <div class="h2hstat"><span>Stops</span><b>${r.stops ?? 0}</b></div>
+    <div class="h2hstat"><span>Last lap</span><b>${esc(r.last || "–")}</b></div>
+    <div class="h2hstat"><span>Best lap</span><b>${esc(r.best || fmtLap(best))}</b></div></div>`;
+  let verdict = "";
+  const v = d.verdict;
+  if (v) {
+    if (v.rate > 0.05) verdict = `<b>${esc(v.behind)}</b> is catching <b>${esc(v.ahead)}</b> by ${v.rate.toFixed(2)}s a lap. ${v.gap}s between them, `
+      + (v.inTime ? `so at this rate he's on him in about <b>${v.catchIn} lap${v.catchIn === 1 ? "" : "s"}</b>${v.lapsLeft != null ? ` (${v.lapsLeft} to go)` : ""}.` : `but at this rate he runs out of laps${v.lapsLeft != null ? ` (${v.lapsLeft} to go)` : ""}.`);
+    else if (v.rate < -0.05) verdict = `<b>${esc(v.ahead)}</b> is pulling away from <b>${esc(v.behind)}</b> by ${(-v.rate).toFixed(2)}s a lap. ${v.gap}s between them.`;
+    else verdict = `<b>${esc(v.ahead)}</b> and <b>${esc(v.behind)}</b> are matching each other, ${v.gap}s apart.`;
+  } else if (!d.race) {
+    const ab = d.aBest, bb = d.bBest;
+    verdict = ab && bb ? `Best laps: <b>${esc(ab <= bb ? A.tla : B.tla)}</b> is ${Math.abs(ab - bb).toFixed(3)}s quicker.` : "Comparing best laps once they've both set one.";
+  }
+  html += `<div class="h2hcards">${card(A, d.aBest)}${card(B, d.bBest)}</div>`;
+  if (verdict) html += `<div class="h2hverdict">${verdict}</div>`;
+  const pts = (d.laps || []).filter(x => x.gap !== null);
+  if (d.race && pts.length > 1) {
+    const W = Math.max(420, el.clientWidth - 40), H = 190, L = 10, R = 16, T = 14, Bm = 28;
+    const maxLap = Math.max(...pts.map(p => p.lap), 2), minLap = Math.min(...pts.map(p => p.lap));
+    const span = Math.max(1, ...pts.map(p => Math.abs(p.gap)));
+    const X = l => L + (l - minLap) / Math.max(1, maxLap - minLap) * (W - L - R), Y = g => T + (1 - (g + span) / (2 * span)) * (H - T - Bm);
+    let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%"><line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="#3a4552" stroke-dasharray="4 4"/>
+      <text x="${L + 4}" y="${T + 10}" fill="${esc(A.colour)}" font-size="13">▲ ${esc(A.tla)} ahead</text>
+      <text x="${L + 4}" y="${H - Bm - 4}" fill="${esc(B.colour)}" font-size="13">▼ ${esc(B.tla)} ahead</text>
+      <polyline fill="none" stroke="#e9edf2" stroke-width="2.5" points="${pts.map(p => X(p.lap).toFixed(1) + "," + Y(p.gap).toFixed(1)).join(" ")}"/>`;
+    for (let l = Math.ceil(minLap / 5) * 5; l <= maxLap; l += 5) svg += `<text x="${X(l)}" y="${H - 8}" fill="#8893a0" font-size="12" text-anchor="middle">${l}</text>`;
+    html += `<h3 class="h2hh">Gap between them, lap by lap</h3>` + svg + "</svg>";
+  }
+  const recent = (d.laps || []).filter(x => x.a || x.b).slice(-6).reverse();
+  if (recent.length) {
+    html += `<h3 class="h2hh">Recent laps</h3><table class="h2htable"><tr><th>Lap</th><th>${esc(A.tla)}</th><th>${esc(B.tla)}</th><th></th></tr>` +
+      recent.map(x => {
+        const diff = x.a && x.b ? x.a - x.b : null;
+        const who = diff === null ? "" : Math.abs(diff) < 0.0005 ? "same" : `${esc(diff < 0 ? A.tla : B.tla)} +${Math.abs(diff).toFixed(3)}`;
+        return `<tr><td>${x.lap}</td><td class="${diff !== null && diff < 0 ? "quick" : ""}">${fmtLap(x.a)}</td><td class="${diff !== null && diff > 0 ? "quick" : ""}">${fmtLap(x.b)}</td><td class="dim">${who}</td></tr>`;
+      }).join("") + "</table>";
+  }
+  el.innerHTML = html;
+  wireH2H();
+}
+function wireH2H() {
+  const save = () => { try { localStorage.setItem("rwd-h2h", JSON.stringify({a: h2h.a, b: h2h.b})); } catch (e) {} h2h.key = ""; if (lastState) drawH2H(lastState); };
+  const a = document.getElementById("h2ha"), b = document.getElementById("h2hb");
+  if (a) a.onchange = () => { h2h.a = a.value; a.blur(); save(); };
+  if (b) b.onchange = () => { h2h.b = b.value; b.blur(); save(); };
+}
+
+// ---------- pit wall ----------
+function drawPitWall(s) {
+  const el = document.getElementById("pane-pitwall");
+  if (!s.isRace) { el.innerHTML = '<div class="note">The pit wall works during races and sprints.</div>'; return; }
+  const cards = s.pitWall || [];
+  if (!cards.length) { el.innerHTML = '<div class="note">Waiting for the race to get going.</div>'; return; }
+  const by = Object.fromEntries(s.rows.map(r => [r.num, r]));
+  const tyre = c => c.tyre ? `<span class="tyre ${esc(c.tyre || "")}">${esc((c.tyre || "?")[0])}</span> ${c.tyreAge ?? "?"} laps` : "";
+  const html = cards.map(c => {
+    const col = esc((by[c.num] || {}).colour || "#888");
+    let body;
+    if (c.inPit) body = `<div class="pwbig">In the pits now</div>`;
+    else if (!c.rejoin) body = `<div class="pwbig dim">Can't work it out (lapped or no gap)</div>`;
+    else {
+      const move = c.rejoin - c.pos;
+      const verdict = move === 0 ? `<span class="pwgood">Free stop, keeps P${c.pos}</span>`
+        : `<span class="${move > 3 ? "pwbad" : ""}">loses ${move} place${move > 1 ? "s" : ""}</span>`;
+      body = `<div class="pwbig">Pit now → <b>P${c.rejoin}</b> ${verdict}</div>
+        <div class="pwline">${c.behindOf ? `${c.behindOf.gap}s behind <b>${esc(c.behindOf.tla)}</b>` : "out front"}${c.aheadOf ? ` · ${c.aheadOf.gap}s ahead of <b>${esc(c.aheadOf.tla)}</b>` : ""}${c.traffic ? ' <span class="pwbad">· in traffic</span>' : ""}</div>`;
+      if (c.undercut) body += `<div class="pwline"><span class="pwgood">Undercut on</span> ${esc(c.undercut.tla)}, ${c.undercut.gap}s ahead on tyres as old or older</div>`;
+      if (c.threat) body += `<div class="pwline"><span class="pwwarn">Watch out:</span> ${esc(c.threat.tla)} is ${c.threat.gap}s behind and could undercut</div>`;
+    }
+    return `<div class="pwcard" style="border-left-color:${col}">
+      <div class="pwhead"><b style="color:${col}">${esc(c.tla)}</b> ${esc(c.name)} <span class="pwpos">P${c.pos}</span>
+        <span class="pwtyre">${tyre(c)} · ${c.stops} stop${c.stops === 1 ? "" : "s"}</span></div>${body}</div>`;
+  }).join("");
+  const sc = cards[0] && cards[0].cheap;
+  el.innerHTML = `<div class="note">Where each of your drivers would come out if they pitted this lap, from the gaps now and about ${cards[0].loss}s lost in the pits${sc ? " (roughly half the usual, with the safety car out)" : ""}. A guide, not a promise: it can't see tyre wear.</div>
+    ${sc ? '<div class="pwsc">Safety car: cheap stop time</div>' : ""}<div class="pwgrid">${html}</div>`;
+}
+
 function stopList(s, by) {
   const timed = (s.stops || []).filter(x => x.stop || x.lane);
   if (!timed.length) return "";
@@ -1268,14 +1528,56 @@ function drawStandings(s) {
     const who = filter === "Everyone" ? w : w.filter(x => x === filter);
     return who.length === 1 ? `style="color: color-mix(in srgb, ${esc(people[who[0]])} 45%, #e9edf2)"` : who.length ? `style="color: var(--ink)"` : `style="color: var(--dim)"`;
   };
-  const drivers = st.drivers.slice(0, 22).map((d, i) => `<tr ${fanTone(d.watchers)}>
+  const before = rowTops(el);
+  const drivers = st.drivers.slice(0, 22).map((d, i) => `<tr data-k="d-${esc(d.code)}" ${fanTone(d.watchers)}>
       <td class="pos" style="font-size:17px">${i + 1}</td>${mv(d.move)}<td><b>${esc(d.code)}</b> ${esc(d.name)}</td>
       <td class="num">${Math.round(d.after)}</td><td class="gain">${d.gain ? "+" + d.gain : ""}</td></tr>`).join("");
-  const teams = st.teams.map((t, i) => `<tr ${fanTone(t.watchers)}>
+  const teams = st.teams.map((t, i) => `<tr data-k="t-${esc(t.id)}" ${fanTone(t.watchers)}>
       <td class="pos" style="font-size:17px">${i + 1}</td>${mv(t.move)}<td>${esc(t.name)}</td>
       <td class="num">${Math.round(t.after)}</td><td class="gain">${t.gain ? "+" + t.gain : ""}</td></tr>`).join("");
   el.innerHTML = `<div class="note">${esc(st.note)}. Green numbers are the points they'd get for where they are now.</div>
+    ${titleBox(st.title)}
     <div class="standings"><div><h3>Drivers</h3><table>${drivers}</table></div><div><h3>Teams</h3><table>${teams}</table></div></div>`;
+  slideRows(el, before);
+}
+
+// Rows glide to their new place when the order changes, so you can see who's moved
+function rowTops(el) {
+  const m = {};
+  el.querySelectorAll("tr[data-k]").forEach(r => { m[r.dataset.k] = r.getBoundingClientRect().top; });
+  return m;
+}
+function slideRows(el, before) {
+  el.querySelectorAll("tr[data-k]").forEach(r => {
+    const was = before[r.dataset.k];
+    if (was === undefined) return;
+    const dy = was - r.getBoundingClientRect().top;
+    if (Math.abs(dy) < 2) return;
+    r.style.transition = "none"; r.style.transform = `translateY(${dy}px)`;
+    r.classList.add(dy > 0 ? "rose" : "fell");
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      r.style.transition = "transform .9s cubic-bezier(.2,.8,.2,1)"; r.style.transform = "";
+      setTimeout(() => r.classList.remove("rose", "fell"), 2500);
+    }));
+  });
+}
+
+// Who can still win the title, and what this race would do to it
+function titleBox(t) {
+  if (!t || !t.contenders || !t.contenders.length) return "";
+  const left = [t.races ? `${t.races} race${t.races > 1 ? "s" : ""}` : "", t.sprints ? `${t.sprints} sprint${t.sprints > 1 ? "s" : ""}` : ""].filter(Boolean).join(" and ");
+  const lead = t.contenders[0];
+  let headline;
+  if (t.champion) headline = t.live ? `<b>${esc(lead.name)} would be world champion</b> if it finished like this!` : `<b>${esc(lead.name)} is world champion.</b>`;
+  else headline = `${left ? left + " left after this, " : ""}${t.left} points still to win.`;
+  const dropped = t.contenders.filter(c => c.was && !c.alive);
+  const chips = t.contenders.filter(c => c.alive).map((c, i) => {
+    const mine = c.watchers && c.watchers.length ? ` style="color:color-mix(in srgb, ${esc(people[c.watchers[0]] || "#e9edf2")} 50%, #e9edf2)"` : "";
+    const was = t.live && c.before !== c.after ? ` <small>(${i === 0 ? "" : "was "}${Math.round(c.before)})</small>` : "";
+    return `<span class="tc"${mine}><b>${esc(c.code)}</b> ${i === 0 ? Math.round(c.after) + " pts" : "−" + Math.round(c.behind)}${i === 0 ? "" : was}</span>`;
+  }).join("");
+  const out = dropped.length ? `<div class="tout">${dropped.map(c => esc(c.name)).join(" and ")} would be out of the title fight if it finished like this.</div>` : "";
+  return `<div class="titlebox"><h3>Title fight</h3><div class="thead">${headline}</div><div class="tcs">${chips}</div>${out}</div>`;
 }
 
 // ---------- predictions ----------
@@ -1352,6 +1654,8 @@ function setTv(on) {
 }
 document.getElementById("tvbtn").onclick = () => setTv(true);
 document.getElementById("tvexit").onclick = () => setTv(false);
+// ?telly=1 opens straight in telly mode, e.g. when Moby's Home puts the dashboard on the TV
+if (/[?&]telly=1\b/.test(location.search)) setTv(true);
 document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && document.body.classList.contains("tv")) setTv(false); });
 
 // ---------- sounds ----------

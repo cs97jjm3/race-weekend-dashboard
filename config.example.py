@@ -32,6 +32,11 @@ WEB_PORT = 8080
 #   SHARE_HOSTNAME = "race.example.co.uk"
 SHARE_HOSTNAME = ""
 SHARE_TUNNEL = "race-dashboard"
+# Optional public page: a read-only version for anyone, with no family names and no passcode,
+# at its own address on the same tunnel (e.g. "pitwall.example.co.uk"). Point that address at
+# the tunnel once with:  cloudflared tunnel route dns race-dashboard pitwall.example.co.uk
+# Leave blank for no public page.
+PUBLIC_HOSTNAME = ""
 
 # Roughly how many seconds a pit stop costs at each track, used to guess
 # where a driver will rejoin. These are approximate; tweak them if the

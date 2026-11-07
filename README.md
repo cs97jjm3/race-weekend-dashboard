@@ -119,6 +119,25 @@ switch the AI comments off, and they don't see the link or code themselves. Clou
 quick tunnels are meant for testing and come with no uptime guarantee; if the tunnel drops,
 the dashboard starts a new one, which means a new link to send.
 
+### A public page for anyone (optional)
+
+Set `PUBLIC_HOSTNAME` in `config.py` (for example `"pitwall.example.co.uk"`) and point that
+address at the same tunnel once:
+
+```
+cloudflared tunnel route dns race-dashboard pitwall.example.co.uk
+```
+
+Anyone who opens it gets a read-only version of the screen with no passcode. It has the race
+(timing, map, tyres, gaps, lap chart, pit wall, head to head, stewards and FIA summaries,
+radio transcripts, the AI commentary, standings and the weekend) but none of the family: no
+names, no who-follows-who, no predictions or AI buttons, nothing that can be changed, no
+history lookups and no radio audio. Visitors pick their own drivers, kept in their browser. It
+uses the same delay as at home. The screen is worked out once a second however many people are
+watching, and sent compressed, so a home connection copes with a fair few visitors. It says
+it's not connected to Formula 1 or the FIA, and it's free with no adverts, which is the sensible
+way to run something built on F1's unofficial feed.
+
 ### Your own web address (optional)
 
 If you have a domain on Cloudflare, the link can be the same every race (for example `race.example.co.uk`) instead of a new trycloudflare.com one. Set it up once in a command window:

@@ -896,7 +896,7 @@ class Race:
             log.warning("Skipped %s (%s)", fn.__name__, e)
             return []
 
-    def pit_wall(self, rows):
+    def pit_wall(self, rows, everyone=False):
         """'If they pitted this lap': for each of your drivers, where they'd come out, who
         they'd be next to, and whether an undercut is on. Same sums as the pit stop alert."""
         cheap = self.track in ("4", "6", "7")            # safety car or VSC: a stop costs about half
@@ -904,7 +904,7 @@ class Race:
         def g(r):
             return 0.0 if r["pos"] == 1 else gap_seconds(r["gap"])
         running = [r for r in rows if not r["out"] and r["pos"] < 99]
-        mine = [r for r in running if r["watchers"]] or running[:3]
+        mine = running if everyone else ([r for r in running if r["watchers"]] or running[:3])
         out = []
         for r in mine:
             me = g(r)

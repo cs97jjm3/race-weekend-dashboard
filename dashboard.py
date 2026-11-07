@@ -27,6 +27,7 @@ from feed import ArchiveLocked, LiveFeed, Recorder, ReplayFeed, find_session
 from notify import Notifier, ai_name, ai_ready, provider, ai_model
 from predictions import Predictions
 from radio import Radio
+import public
 from race import EVERYONE, Race
 from standings import Standings
 import share
@@ -125,6 +126,7 @@ def via():
 
 
 def make_handler(race, radio, preds, gate):
+    public_cache = public.Cache(race)
     def failed(e):
         """Claude didn't answer: say so in the cmd window and in the feed, not just on the button."""
         log.warning("'What's happening?' failed: %s", e)
@@ -224,7 +226,40 @@ def make_handler(race, radio, preds, gate):
                 self._json({"error": "Passcode needed"}, 401)
             return False
 
+        def _public_get(self):
+            """Someone on the public address: the read-only screen, no passcode, no family."""
+            if not public.allowed(self.path.split("#")[0]):
+                self._json({"error": "That's only on the home version"}, 404)
+                return True
+            if self.path in ("/", "/index.html"):
+                self._page(page.decode("utf-8"))
+                return True
+            if self.path.startswith("/state"):
+                plain, packed = public_cache.get()
+                gz = "gzip" in (self.headers.get("Accept-Encoding") or "")
+                body = packed if gz else plain
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Cache-Control", "public, max-age=1")
+                if gz:
+                    self.send_header("Content-Encoding", "gzip")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return True
+            if self.path.startswith("/h2h?"):
+                args = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+                try:
+                    data = race.head_to_head((args.get("a") or [""])[0], (args.get("b") or [""])[0])
+                except Exception:
+                    data = {"error": "Couldn't compare them just now"}
+                self._json(public.tidy_h2h(data))
+                return True
+            return False                     # the rest (track, weekend) are the same as at home
+
         def do_POST(self):
+            if public.is_public(self):
+                return self._json({"error": "This is the read-only version"}, 403)
             if self.path == "/login":
                 n = int(self.headers.get("Content-Length") or 0)
                 form = urllib.parse.parse_qs(self.rfile.read(min(n, 2000)).decode("utf-8", "replace"))
@@ -285,12 +320,17 @@ def make_handler(race, radio, preds, gate):
             self.send_error(404)
 
         def do_GET(self):
-            if self.path.startswith("/login"):
-                return self._page(share.login_page(""))
             if self.path == "/favicon.ico" or self.path.startswith("/static/"):
                 return self._static()          # icons and the app details: fine to show without the passcode
-            if not self._let_in():
-                return
+            if public.is_public(self):
+                if self._public_get():
+                    return
+                # anything left (the track outline, the weekend) is the same as at home
+            else:
+                if self.path.startswith("/login"):
+                    return self._page(share.login_page(""))
+                if not self._let_in():
+                    return
             if self.path.startswith("/state"):
                 v = race.view()
                 remote = gate.is_remote(self)

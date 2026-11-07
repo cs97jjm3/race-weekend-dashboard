@@ -104,6 +104,14 @@
   .filters .show button.more { padding: 2px 10px; margin-left: -7px; border-left-width: 1px; border-radius: 0 4px 4px 0; }
   #aiask { border-radius: 4px 0 0 4px; }
   body.away #aicomm { display: none; }
+  body.public #predbtn, body.public #filters, body.public #aictl, body.public #sharing, body.public .copy.share { display: none !important; }
+  .publicbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 20px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--dim); position: relative; }
+  .publicbar #followbtn { background: var(--accent); color: #0b0d10; border: 0; border-radius: 6px; padding: 5px 12px; font: 600 14px inherit; cursor: pointer; }
+  .publicbar .pcredit { margin-left: auto; } .publicbar a { color: var(--ink); }
+  #followpop { display: none; position: absolute; top: 44px; left: 20px; z-index: 900; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; max-height: 70vh; overflow: auto; width: min(420px, 90vw); box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  #followpop.open { display: block; } #followpop label { display: block; padding: 4px 0; color: var(--ink); font-size: 15px; cursor: pointer; }
+  #followpop .fhead { color: var(--dim); font-size: 13px; margin-bottom: 6px; } #followpop .d { color: var(--dim); font-size: 13px; }
+  #followpop button { margin-top: 8px; background: var(--accent); color: #0b0d10; border: 0; border-radius: 6px; padding: 6px 16px; font-weight: 600; cursor: pointer; }
   #topicpop { position: absolute; z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px;
               box-shadow: 0 10px 30px rgba(0,0,0,.5); display: none; min-width: 230px; }
   #topicpop.open { display: block; }
@@ -459,6 +467,12 @@
   </div>
   <div class="live" id="live"><i></i><span>WAITING</span></div>
 </div>
+<div class="publicbar hidden" id="publicbar">
+  <button id="followbtn" onclick="openFollow()">Pick your drivers</button>
+  <span class="pnote" id="pnote">Live from F1's timing. Not connected to Formula 1 or the FIA.</span>
+  <span class="pcredit">Built at home by James Murrell · <a href="https://edsf1.jmmcp.uk/" target="_blank" rel="noopener">How it was made</a> · <a href="https://github.com/cs97jjm3/race-weekend-dashboard" target="_blank" rel="noopener">Code on GitHub</a> · <a href="https://www.linkedin.com/in/james-murrell-900791176/" target="_blank" rel="noopener">LinkedIn</a></span>
+  <div id="followpop" role="dialog" aria-label="Your drivers"></div>
+</div>
 <div class="bar">
   <div class="gp" id="gp">Race Weekend<small id="sess"></small><small id="clock" class="clock hidden" title="Time left in the session, from F1's clock"></small></div>
   <div class="nextchip hidden" id="nextchip"></div>
@@ -762,7 +776,7 @@ function drawFilters() {
     drawFilters(); refresh();
   });
   document.getElementById("key").innerHTML = Object.keys(people).map(p =>
-    `<span>${dots([p])} ${esc(p)}'s drivers</span>`).join("");
+    `<span>${dots([p])} ${p === "You" ? "Your" : esc(p) + "'s"} drivers</span>`).join("");
 }
 
 // ---------- map ----------
@@ -893,6 +907,7 @@ function drawFlags(s) {
 
 // ---------- page ----------
 function render(s) {
+  if (s.viewer === "public") s = publicView(s);
   if (JSON.stringify(Object.keys(s.people)) !== JSON.stringify(Object.keys(people))) { people = s.people; drawFilters(); }
   loadTrack(s.circuit, s.year);
   document.getElementById("gp").firstChild.textContent = s.meeting || "Race Weekend";
@@ -1023,7 +1038,10 @@ function render(s) {
   });
 }
 
+let lastPoll = 0;
 async function refresh() {
+  if (document.body.classList.contains("public") && Date.now() - lastPoll < 1900) return;   // public: every 2 seconds
+  lastPoll = Date.now();
   try {
     const r = await fetch("/state", {cache: "no-store"});
     render(await r.json());
@@ -1251,6 +1269,50 @@ function drawGaps(s) {
   el.innerHTML = `<div class="note">Seconds behind the car in front at the end of each lap. Lower is closer. A jump usually means a pit stop; a gap in the line means they were leading.</div>` + svg + "</svg>";
 }
 
+// ---------- the public page ----------
+// Visitors pick their own drivers; that's kept in their browser and used to colour everything
+// the same way the family's drivers are coloured at home.
+let follow = new Set();
+try { follow = new Set(JSON.parse(localStorage.getItem("rwd-follow") || "[]")); } catch (e) {}
+const YOU = "#c8f031";
+function publicView(s) {
+  if (!document.body.classList.contains("public")) {
+    document.body.classList.add("public");
+    document.getElementById("publicbar").classList.remove("hidden");
+  }
+  const names = new Set(), codes = new Set();
+  s.rows.forEach(r => {
+    const mine = follow.has(r.tla);
+    r.watchers = mine ? ["You"] : [];
+    if (mine) { names.add(r.name); codes.add(r.tla); }
+  });
+  s.people = follow.size ? {You: YOU} : {};
+  const hit = t => [...names].some(n => n && (t || "").includes(n));
+  (s.events || []).forEach(e => { e.who = hit(e.text) ? ["You"] : []; });
+  if (s.pitWall) s.pitWall = follow.size ? s.pitWall.filter(c => codes.has(c.tla)) : s.pitWall.slice(0, 3);
+  const st = s.standings || {};
+  (st.drivers || []).forEach(d => { d.watchers = codes.has(d.code) ? ["You"] : []; });
+  ((st.title || {}).contenders || []).forEach(c => { c.watchers = codes.has(c.code) ? ["You"] : []; });
+  document.getElementById("pnote").textContent = "Live from F1's timing" +
+    (s.delay ? `, ${Math.round(s.delay)} seconds behind to match the TV` : "") + ". Not connected to Formula 1 or the FIA.";
+  document.getElementById("followbtn").textContent = follow.size ? `Your drivers: ${[...follow].join(", ")}` : "Pick your drivers";
+  return s;
+}
+function openFollow() {
+  const pop = document.getElementById("followpop");
+  const rows = [...((lastState && lastState.rows) || [])].sort((a, b) => a.tla.localeCompare(b.tla));
+  pop.innerHTML = `<div class="fhead">Follow up to five drivers. They're picked out on the map, the timing and the feed.</div>` +
+    rows.map(r => `<label><input type="checkbox" value="${esc(r.tla)}" ${follow.has(r.tla) ? "checked" : ""}> <b style="color:${esc(r.colour)}">${esc(r.tla)}</b> ${esc(r.name)} <span class="d">${esc(r.team)}</span></label>`).join("") +
+    `<button id="followdone">Done</button>`;
+  pop.classList.add("open");
+  pop.querySelectorAll("input").forEach(i => i.onchange = () => {
+    if (i.checked && follow.size >= 5) { i.checked = false; return; }
+    i.checked ? follow.add(i.value) : follow.delete(i.value);
+    try { localStorage.setItem("rwd-follow", JSON.stringify([...follow])); } catch (e) {}
+  });
+  document.getElementById("followdone").onclick = () => { pop.classList.remove("open"); lastPoll = 0; refresh(); };
+}
+
 // ---------- session clock ----------
 let clockState = null;
 function fmtClock(sec) {
@@ -1264,7 +1326,7 @@ function tickClock() {
   const left = c.running ? c.left - (performance.now() - c.got) / 1000 * (c.rate || 1) : c.left;
   // in a race the clock is only the time limit, so only show it when it matters
   const show = !c.race || !c.running || left < 600;
-  el.classList.toggle("hidden", !show || (left <= 0 && !c.running && c.race));
+  el.classList.toggle("hidden", !show || (left <= 0 && !c.running));     // session over: nothing to count
   el.classList.toggle("stopped", !c.running && left > 0);
   el.classList.toggle("low", c.running && left < 120);
   el.textContent = c.race && c.running ? `${fmtClock(left)} to the time limit`
