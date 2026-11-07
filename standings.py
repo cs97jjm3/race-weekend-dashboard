@@ -139,4 +139,50 @@ class Standings:
         tlist.sort(key=lambda t: (-t["after"], old_t.get(t["id"], 99)))
         for i, t in enumerate(tlist):
             t["move"] = old_t.get(t["id"], i) - i
-        return {"note": note, "round": self.data["round"], "drivers": drivers, "teams": tlist}
+        title = None
+        try:
+            title = self.title_fight(race, drivers, scoring)
+        except Exception as e:
+            log.info("Title fight sums skipped (%s)", e)
+        return {"note": note, "round": self.data["round"], "drivers": drivers, "teams": tlist, "title": title}
+
+    def points_left(self, race, scoring):
+        """Points still to be won after this session: (points, races left, sprints left)."""
+        cur = self._this_round(race) or (self.data["round"] + 1)
+        races = sprints = 0
+        for r in self.data["races"]:
+            if r["round"] > cur:
+                races += 1
+                sprints += 1 if r["sprint"] else 0
+            elif r["round"] == cur:
+                name = (race.session().get("Name") or "").lower()
+                if race.is_sprint():
+                    races += 1                     # the grand prix is still to come this weekend
+                elif race.is_race():
+                    pass                           # this is the last points of the weekend
+                else:
+                    races += 1
+                    if r["sprint"] and ("practice" in name or "sprint" in name):
+                        sprints += 1               # sprint qualifying or practice: the sprint is still to come
+        return races * RACE_POINTS[0] + sprints * SPRINT_POINTS[0], races, sprints
+
+    def title_fight(self, race, drivers, scoring):
+        """Who can still win the title: before this session, and if it finished as things are now."""
+        if not drivers:
+            return None
+        left, races, sprints = self.points_left(race, scoring)
+        this_session = (SPRINT_POINTS[0] if race.is_sprint() else RACE_POINTS[0]) if scoring else 0
+        lead_after = max(d["after"] for d in drivers)
+        lead_before = max(d["before"] for d in drivers)
+        out = []
+        for d in sorted(drivers, key=lambda d: -d["after"]):
+            alive_now = d["after"] + left >= lead_after
+            alive_before = d["before"] + left + this_session >= lead_before
+            if alive_now or alive_before:
+                out.append({"code": d["code"], "name": d["name"], "after": d["after"], "before": d["before"],
+                            "behind": lead_after - d["after"], "alive": alive_now, "was": alive_before,
+                            "watchers": d.get("watchers", [])})
+        alive = [c for c in out if c["alive"]]
+        champion = alive[0]["code"] if len(alive) == 1 and (scoring or left == 0) else None
+        return {"left": left, "races": races, "sprints": sprints, "contenders": out[:6],
+                "champion": champion, "live": scoring}

@@ -23,6 +23,40 @@ log = logging.getLogger("dashboard")
 LIST_URL = "https://www.fia.com/documents/championships/fia-formula-one-world-championship-14"
 HERE = os.path.dirname(os.path.abspath(__file__))
 SEEN_FILE = os.path.join(HERE, "history_cache", "fia_seen.json")
+DOCS_FILE = os.path.join(HERE, "history_cache", "fia_docs.json")
+
+
+def load_docs():
+    """Decisions read this season: [{"event", "title", "url", "fields", "at"}]."""
+    try:
+        with open(DOCS_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return []
+
+
+def _keep_doc(event, title, url, fields):
+    docs = [d for d in load_docs() if d.get("url") != url][-200:]
+    docs.append({"event": event, "title": title, "url": url, "fields": fields, "at": time.time()})
+    try:
+        os.makedirs(os.path.dirname(DOCS_FILE), exist_ok=True)
+        with open(DOCS_FILE, "w", encoding="utf-8") as f:
+            json.dump(docs, f)
+    except OSError:
+        pass
+
+
+def grid_penalties(event):
+    """This weekend's grid penalties: [(driver number, driver, decision)]."""
+    out = []
+    for d in load_docs():
+        f = d.get("fields") or {}
+        dec = f.get("Decision") or ""
+        if d.get("event") == event and "grid" in dec.lower():
+            who = f.get("No / Driver", "")
+            m = re.match(r"\s*(\d+)\s*-\s*(.+)", who)
+            out.append((m.group(1) if m else "", (m.group(2) if m else who).strip(), dec.strip()))
+    return out
 KINDS = ("decision", "infringement", "offence", "penalty", "reprimand", "summons", "summon")
 FIELDS = ("No / Driver", "Competitor", "Time", "Session", "Fact", "Offence", "Infringement", "Decision", "Reason")
 STOP = ("Competitors are reminded", "Decisions of the Stewards are taken", "The Stewards")
@@ -194,7 +228,10 @@ class Checker:
         docs = [(u, t) for u, t in documents(html, event_name, city) if is_decision(t)]
         new = [(u, t) for u, t in docs if u not in self.seen]
         for url, t in reversed(new):         # oldest first, so the newest ends up on top of the feed
-            self.emit(t, url, self.details(url))
+            info = self.details(url)
+            if info.get("fields"):
+                _keep_doc(event_name, t, url, info["fields"])
+            self.emit(t, url, info)
             self.seen.add(url)
         if new:
             self._save()

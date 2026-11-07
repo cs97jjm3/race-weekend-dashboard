@@ -1,0 +1,2 @@
+pillow
+imageio-ffmpeg

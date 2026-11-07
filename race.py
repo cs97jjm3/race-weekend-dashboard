@@ -1,10 +1,13 @@
 """Keeps track of the session and works out what's worth telling you about."""
+import logging
 import re
 import threading
 import time
 from datetime import datetime, timezone
 
 import config
+
+log = logging.getLogger("dashboard")
 from notify import ai_name, ai_ready
 
 TRACK = {
@@ -60,6 +63,29 @@ def lap_seconds(text):
     if not m:
         return None
     return int(m.group(1) or 0) * 60 + float(m.group(2))
+
+
+def spoken(ev, race, followed):
+    """A short line for Moby's Home to say on the Echos, or None for things not worth saying.
+    Kept to the big moments, so the house doesn't talk all race."""
+    kind, text, title = ev.get("kind"), ev.get("text") or "", ev.get("title") or ""
+    if kind in ("sc", "red", "green"):
+        return text
+    if kind == "start":
+        return "Lights out, and away we go!" if race else text
+    if kind == "finish":
+        return ". ".join(text.split(". ")[:2]).rstrip(".") + "."     # "Chequered flag. Norris wins."
+    if kind == "lead" and race:
+        return text
+    if kind == "out" and followed:
+        return text
+    if kind == "fast" and followed and race:
+        return text.split(":")[0]                                      # leave the lap time off
+    if kind == "pit" and followed and title == "PIT STOP":
+        return re.sub(r" on \d+-lap-old \w+", "", text)                # "Hamilton pits from P5. Should rejoin around P9..."
+    if kind == "stewards" and followed and "PENALTY" in title:
+        return "Penalty. " + text
+    return None
 
 
 def hms_seconds(text):
@@ -166,6 +192,7 @@ class Race:
         self.standings = None     # set by dashboard.py to the Standings helper
         self.clock = None         # session clock: (seconds left, when that was true, counting down?)
         self.pos_hist = {}        # num -> {lap: position at the end of that lap}, for the lap chart
+        self.lap_times = {}       # num -> {lap: lap time in seconds}, for head to head
         self.stop_times = {}      # (num, lap) -> {"stop": stationary secs, "lane": pit lane secs}
 
     def set_clock(self, t, speed):
@@ -264,12 +291,16 @@ class Race:
         lap, total = self.lap()
         if self.is_quali():
             lap = None
-        ev = {"t": time.strftime("%H:%M:%S"), "lap": lap, "text": text, "who": list(who),
+        self.event_id = getattr(self, "event_id", 0) + 1
+        ev = {"id": self.event_id, "t": time.strftime("%H:%M:%S"), "lap": lap, "text": text, "who": list(who),
               "kind": kind, "title": title, "shown": show, "ntfy": send}
         if self.is_quali() and self.quali_part:
             ev["part"] = "Q%d" % self.quali_part
         if extra:
             ev.update(extra)
+        line = spoken(ev, self.is_race(), tuple(who) != tuple(EVERYONE))
+        if line:
+            ev["say"] = line
         if show:
             self.events.insert(0, ev)
             del self.events[300:]
@@ -325,7 +356,7 @@ class Race:
         self.crossed, self.gap_hist, self.top_speed, self.penalties, self.grid = {}, {}, {}, {}, {}
         self.pit_log, self.weather_start = [], {}
         self.quali_part = 0
-        self.clock, self.pos_hist, self.stop_times = None, {}, {}
+        self.clock, self.pos_hist, self.stop_times, self.lap_times = None, {}, {}, {}
 
     def _track(self):
         st = str((self.raw.get("TrackStatus") or {}).get("Status", "1"))
@@ -637,6 +668,10 @@ class Race:
                     self.gap_hist.setdefault(n, {})[int(laps_done)] = (iv, gl)
                 if laps_done and str(pos).isdigit() and not out:
                     self.pos_hist.setdefault(n, {})[int(laps_done)] = int(pos)
+                if laps_done and lv:
+                    secs = lap_seconds(lv)
+                    if secs:
+                        self.lap_times.setdefault(n, {})[int(laps_done)] = secs
             # fastest lap
             if last.get("OverallFastest") and lv and lv != p.get("fl") and who:
                 p["fl"] = lv
@@ -850,6 +885,106 @@ class Race:
         out.sort(key=lambda r: (r["lap"] or 0, r["num"]))
         return out
 
+    # ----- pit wall -----
+
+    @staticmethod
+    def _safe(fn, *args):
+        """Extras on the screen must never stop the timing from showing."""
+        try:
+            return fn(*args)
+        except Exception as e:
+            log.warning("Skipped %s (%s)", fn.__name__, e)
+            return []
+
+    def pit_wall(self, rows):
+        """'If they pitted this lap': for each of your drivers, where they'd come out, who
+        they'd be next to, and whether an undercut is on. Same sums as the pit stop alert."""
+        cheap = self.track in ("4", "6", "7")            # safety car or VSC: a stop costs about half
+        loss = self.pit_loss() * (0.55 if cheap else 1.0)
+        def g(r):
+            return 0.0 if r["pos"] == 1 else gap_seconds(r["gap"])
+        running = [r for r in rows if not r["out"] and r["pos"] < 99]
+        mine = [r for r in running if r["watchers"]] or running[:3]
+        out = []
+        for r in mine:
+            me = g(r)
+            card = {"num": r["num"], "tla": r["tla"], "name": r["name"], "pos": r["pos"], "tyre": r["tyre"],
+                    "tyreAge": r["tyreAge"], "stops": r["stops"], "inPit": r["inPit"],
+                    "watchers": r["watchers"], "cheap": cheap, "loss": round(loss, 1)}
+            if r["inPit"] or me is None:
+                out.append(card)
+                continue
+            target = me + loss
+            field = sorted(((g(x), x) for x in running if x["num"] != r["num"] and not x["inPit"] and g(x) is not None),
+                           key=lambda t: (t[0], t[1]["pos"]))
+            ahead = [(gx, x) for gx, x in field if gx < target]
+            behind = [(gx, x) for gx, x in field if gx >= target]
+            card["rejoin"] = len(ahead) + 1
+            if ahead:
+                card["behindOf"] = {"tla": ahead[-1][1]["tla"], "gap": round(target - ahead[-1][0], 1)}
+            if behind:
+                card["aheadOf"] = {"tla": behind[0][1]["tla"], "gap": round(behind[0][0] - target, 1)}
+            near = [x for x in (card.get("behindOf"), card.get("aheadOf")) if x and x["gap"] < 1.5]
+            card["traffic"] = bool(near)
+            # undercut: close to the car in front, on tyres no fresher than theirs
+            front = next((x for x in running if x["pos"] == r["pos"] - 1), None)
+            back = next((x for x in running if x["pos"] == r["pos"] + 1), None)
+            iv = gap_seconds(r["interval"]) if r["pos"] > 1 else None
+            if front and iv is not None and iv <= 2.5 and not front["inPit"] and \
+                    (r["tyreAge"] or 0) >= (front["tyreAge"] or 0) - 3:
+                card["undercut"] = {"tla": front["tla"], "gap": round(iv, 1)}
+            biv = gap_seconds(back["interval"]) if back else None
+            if back and biv is not None and biv <= 2.5 and not back["inPit"] and \
+                    (back["tyreAge"] or 0) >= (r["tyreAge"] or 0) - 3:
+                card["threat"] = {"tla": back["tla"], "gap": round(biv, 1)}
+            out.append(card)
+        return out
+
+    # ----- head to head -----
+
+    def head_to_head(self, a, b):
+        """Two drivers side by side: the gap between them lap by lap, recent lap times, and
+        whether the one behind is catching, with how many laps until they're on them."""
+        rows = {r["num"]: r for r in self.view_rows()}
+        if a not in rows or b not in rows:
+            return {"error": "Pick two drivers"}
+        ra, rb = rows[a], rows[b]
+        out = {"a": ra, "b": rb, "laps": [], "race": self.is_race()}
+        lap_now, total = self.lap()
+        ha, hb = self.gap_hist.get(a) or {}, self.gap_hist.get(b) or {}
+        ta, tb = self.lap_times.get(a) or {}, self.lap_times.get(b) or {}
+        for lap in sorted(set(ha) | set(hb) | set(ta) | set(tb)):
+            ga, gb = (ha.get(lap) or (None, None))[1], (hb.get(lap) or (None, None))[1]
+            gap = round(gb - ga, 3) if ga is not None and gb is not None else None   # + means A is ahead
+            ra_t, rb_t = ta.get(lap), tb.get(lap)
+            out["laps"].append({"lap": lap, "gap": gap, "a": round(ra_t, 3) if ra_t else None,
+                                "b": round(rb_t, 3) if rb_t else None})
+        gaps = [x for x in out["laps"] if x["gap"] is not None and x["lap"] > 1]
+        if self.is_race() and len(gaps) >= 2:
+            recent = gaps[-4:]
+            first, last = recent[0], recent[-1]
+            span = last["lap"] - first["lap"]
+            ahead, behind = (ra, rb) if last["gap"] >= 0 else (rb, ra)
+            dist = abs(last["gap"])
+            change = abs(first["gap"]) - dist                # positive: the one behind is closing
+            rate = change / span if span else 0
+            left = max(0, int(total or 0) - int(lap_now or 0)) if total else None
+            v = {"ahead": ahead["tla"], "behind": behind["tla"], "gap": round(dist, 1), "rate": round(rate, 2),
+                 "lapsLeft": left}
+            if rate > 0.05:
+                laps = dist / rate
+                v["catchIn"] = int(laps) + (0 if laps == int(laps) else 1)
+                v["inTime"] = left is None or v["catchIn"] <= left
+            out["verdict"] = v
+        for side, n in (("aBest", a), ("bBest", b)):
+            t = [v for v in (self.lap_times.get(n) or {}).values()]
+            out[side] = min(t) if t else None
+        return out
+
+    def view_rows(self):
+        """The timing rows on their own, without building the whole screen."""
+        return self.view()["rows"]
+
     # ----- lap chart -----
 
     def lap_chart(self):
@@ -950,6 +1085,7 @@ class Race:
                 "rows": rows, "events": self.events[:80], "status": self.status,
                 "people": people,
                 "gaps": gaps,
+                "pitWall": self._safe(self.pit_wall, rows) if self.is_race() else [],
                 "clock": None if self.clock is None else {"left": round(self.clock_left(), 1), "running": self.clock[2],
                                                           "rate": self.replay_speed or 1},
                 "lapChart": self.lap_chart() if self.is_race() else {},

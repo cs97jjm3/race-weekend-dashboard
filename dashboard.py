@@ -321,6 +321,22 @@ def make_handler(race, radio, preds, gate):
                     log.info("Weekend view problem: %s", e)
                     data = {"error": "Couldn't put the weekend together (%s)" % e}
                 return self._json(data)
+            elif self.path == "/briefing":
+                try:
+                    import briefing
+                    data = briefing.build(standings=race.standings)
+                except Exception as e:
+                    log.info("Briefing problem: %s", e)
+                    data = {"error": "Couldn't put the briefing together (%s)" % e}
+                return self._json(data)
+            elif self.path.startswith("/h2h?"):
+                args = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+                try:
+                    data = race.head_to_head((args.get("a") or [""])[0], (args.get("b") or [""])[0])
+                except Exception as e:
+                    log.info("Head to head problem: %s", e)
+                    data = {"error": "Couldn't compare them just now"}
+                return self._json(data)
             elif self.path.startswith("/history/"):
                 q = urllib.parse.urlparse(self.path)
                 args = urllib.parse.parse_qs(q.query)

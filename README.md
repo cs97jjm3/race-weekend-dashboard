@@ -175,9 +175,21 @@ one per set of tyres, so you can see who's still got to stop. Gaps is a line cha
 your drivers are behind the car in front, lap by lap, with the "within a second" zone shaded
 so you can see who's catching. Lap chart has a line for every driver showing their position at
 the end of each lap, starting from the grid, with your drivers in bold and circles where they
-pitted; underneath it lists the quickest stop of the race and your drivers' stop times. Speeds ranks everyone by their best speed trap reading.
+pitted; underneath it lists the quickest stop of the race and your drivers' stop times. Pit wall shows, for each of your drivers, where they'd come out if they
+pitted this lap: the position, who they'd be just behind and just ahead of, whether that's
+in traffic, whether an undercut on the car in front is on, and whether the car behind could
+undercut them. Under a safety car it allows for the cheaper stop. It uses the same sums as
+the pit stop alerts, so it's a guide rather than a promise: it can't see tyre wear. Head to head puts any two drivers side by side
+(it starts with yours, and remembers your choice): position, gap, tyres, stops, last and best
+laps, a chart of the gap between them lap by lap, their recent laps with the quicker one in
+green, and a plain verdict like "VER is catching LEC by 0.35s a lap, so at this rate he's on
+him in about 6 laps (14 to go)". Speeds ranks everyone by their best speed trap reading.
 Standings shows the championship as it would be if the race finished now, with the points
-each driver is earning in green, and the team table alongside.
+each driver is earning in green, and the team table alongside. When places change, the rows
+slide to their new spot and light up green or red for a moment. Above the tables, the title
+fight box shows how many points are still to be won and who can still be champion, with
+their gap to the leader; during a race it also says who would be knocked out of the title
+fight, or crowned, if it finished like this.
 
 Standings come from the free Jolpica results service. If it can't be reached, the tab just
 says so and everything else carries on.
@@ -259,6 +271,26 @@ at the top says "LIVE · 20s BEHIND" so nobody wonders why. You can also try a d
 for one session with `py dashboard.py --delay 30`. Recordings still save everything as it
 arrives. If you use the flag lights in Moby's Home, they already get the delayed picture, so
 set their own `flag_delay` to 0 or a couple of seconds.
+
+## Race morning briefing
+
+On race weekends the Weekend tab shows a short briefing once qualifying is done: when the race
+starts, the front of the grid and where your drivers start, any grid penalties the FIA has
+published (from the decisions the dashboard read over the weekend), the weather at the start
+and the title fight. It's put together from things the dashboard already knows, with no AI, so
+it's free and can't make anything up. Moby's Home can read it out on the Echos on race morning,
+from `http://localhost:8080/briefing`.
+
+## A one-minute race video to share
+
+After a race, double-click **Make race video** (or run `py tools\race_video.py`) and it turns the
+latest recording into a video of about a minute: the cars going round the track map, the top
+ten, the big moments as they happen, and the podium at the end. It goes in the `videos` folder
+as an .mp4 that WhatsApp, LinkedIn and phones all play. Your drivers are labelled on the map,
+but no family names appear anywhere, so it's fine to post publicly. To make one from a
+different recording, give its folder: `py tools\race_video.py recordings\2026-11-08_1655`
+(or `demo` for the made-up race). The first time, it installs two free packages (Pillow and a
+copy of ffmpeg) from `requirements-video.txt`.
 
 ## Telly mode and sound
 

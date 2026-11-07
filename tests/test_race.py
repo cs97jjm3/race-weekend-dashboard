@@ -119,3 +119,41 @@ def test_investigated_after_the_session_is_labelled_so(new_race):
     new_race.update("DriverList", {"5": {"Tla": "BOR", "LastName": "Bortoleto", "TeamName": "Audi"},
                                    "44": {"Tla": "HAM", "LastName": "Hamilton", "TeamName": "Ferrari"}})
     assert titles(new_race)[-1] == "STEWARDS · AFTER THE SESSION"
+
+
+def test_big_moments_get_a_spoken_line(new_race):
+    from conftest import play
+    r = play(new_race, "demo")
+    said = {e["kind"]: e["say"] for e in r.events if e.get("say")}
+    assert said["start"] == "Lights out, and away we go!"
+    assert said["sc"] == "Safety car deployed"
+    assert said["finish"].startswith("Chequered flag. ") and said["finish"].endswith(" wins.")
+    assert "-lap-old" not in said.get("pit", "")
+    ids = [e["id"] for e in r.events]
+    assert ids == sorted(ids, reverse=True) and len(set(ids)) == len(ids)
+    assert not any(e.get("say") for e in r.events if e["kind"] == "battle")
+
+
+def test_pit_wall_says_where_they_would_come_out(new_race):
+    from conftest import play
+    r = play(new_race, "demo")
+    rows = r.view()["rows"]
+    cards = r.pit_wall(rows)
+    assert cards and all(c["watchers"] for c in cards)
+    for c in cards:
+        if c.get("rejoin"):
+            assert c["rejoin"] >= c["pos"] or c["pos"] > 1
+            assert 1 <= c["rejoin"] <= len(rows)
+    r.track = "4"                                       # safety car: stops cost about half
+    assert r.pit_wall(rows)[0]["cheap"] and r.pit_wall(rows)[0]["loss"] < r.pit_loss()
+
+
+def test_head_to_head(new_race):
+    from conftest import play
+    r = play(new_race, "demo")
+    d = r.head_to_head("16", "1")
+    assert d["a"]["tla"] and d["b"]["tla"] and d["laps"]
+    assert any(x["a"] for x in d["laps"]) and any(x["gap"] is not None for x in d["laps"])
+    v = d["verdict"]
+    assert {v["ahead"], v["behind"]} == {d["a"]["tla"], d["b"]["tla"]} and v["gap"] >= 0
+    assert r.head_to_head("16", "999") == {"error": "Pick two drivers"}
