@@ -5,6 +5,7 @@ import os
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 LIVE_TOPICS = [
@@ -66,18 +67,46 @@ class Recorder:
 
 # ---------- live ----------
 
+class Delayed:
+    """Passes F1's messages on a fixed number of seconds late, in the order they came, so the
+    whole screen matches the telly instead of running ahead of it. Recordings still get
+    everything as it arrives."""
+
+    def __init__(self, on_data, delay):
+        import queue
+        import threading
+        self.on_data, self.delay = on_data, delay
+        self.q = queue.Queue()
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def __call__(self, topic, data, ts):
+        self.q.put((time.time() + self.delay, topic, data, ts))
+
+    def _run(self):
+        while True:
+            due, topic, data, ts = self.q.get()
+            wait = due - time.time()
+            if wait > 0:
+                time.sleep(wait)
+            try:
+                self.on_data(topic, data, ts)
+            except Exception:
+                log.exception("Bad feed message")
+
+
 class LiveFeed:
     """F1's live timing stream. Only the free topics are asked for."""
 
     url = "wss://livetiming.formula1.com/signalrcore"
     negotiate = "https://livetiming.formula1.com/signalrcore/negotiate"
 
-    def __init__(self, on_data, on_status, recorder=None):
-        self.on_data = on_data
+    def __init__(self, on_data, on_status, recorder=None, delay=0):
         self.on_status = on_status
         self.recorder = recorder
         self.conn = None
         self.last_msg = time.time()
+        self.delay = max(0.0, float(delay or 0))
+        self.on_data = Delayed(on_data, self.delay) if self.delay else on_data
 
     def _feed(self, msg):
         self.last_msg = time.time()
@@ -218,7 +247,7 @@ class ReplayFeed:
                     with open(f, encoding="utf-8-sig") as fh:
                         text = fh.read()
                 else:
-                    text = _get(STATIC + self.path + topic + ".jsonStream")
+                    text = _get(STATIC + urllib.parse.quote(self.path + topic + ".jsonStream", safe="/"))
             except Exception as e:
                 self.on_status("Couldn't load %s (%s), carrying on without it" % (topic, e))
                 continue

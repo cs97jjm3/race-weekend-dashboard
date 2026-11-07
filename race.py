@@ -151,6 +151,7 @@ class Race:
         self.radio_hook = None    # set by the radio transcriber, if installed
         self.finish_hooks = []    # called once when a race or sprint finishes (predictions, debrief)
         self.replay_speed = None  # set when replaying
+        self.delay = 0            # seconds the live feed is held back to match the telly
         self.sim_t = None
         self.sim_wall = None
         self.last_data = None     # wall clock time of the last message
@@ -780,8 +781,9 @@ class Race:
         at = self.now()
         if self.sim_t is None and isinstance(data, dict) and data.get("Remaining") is not None:
             utc = parse_utc(c.get("Utc"))
-            if utc and -120 < at - utc < 4 * 3600:
-                at = utc     # live: the value was true at F1's time stamp, which may be a while ago
+            if utc and -120 < at - utc - self.delay < 4 * 3600:
+                at = utc + self.delay   # live: true at F1's time stamp, which may be a while ago,
+                                        # and we're showing everything `delay` seconds late
         if isinstance(data, dict) and data.get("Remaining") is None and self.clock:
             rem, at = self.clock_left(), self.now()   # only the running flag changed: freeze where it is
         self.clock = (rem, at, bool(c.get("Extrapolating")))
@@ -932,7 +934,7 @@ class Race:
                 "meeting": (s.get("Meeting") or {}).get("Name", ""), "session": s.get("Name", ""),
                 "sessionType": self.session_type(), "sessionStatus": self.session_status,
                 "lap": lap, "total": total, "track": TRACK.get(self.track, ("GREEN", ""))[0],
-                "trackText": TRACK.get(self.track, ("", ""))[1], "isRace": self.is_race(),
+                "trackText": TRACK.get(self.track, ("", ""))[1], "isRace": self.is_race(), "delay": self.delay if self.replay_speed is None else 0,
                 "isQuali": quali, "isSprint": self.is_sprint(),
                 "quali": {"part": self.quali_part or 1, "cutAfter": cut, "entries": self._entries()} if quali else None,
                 "finished": self.finished_sent,

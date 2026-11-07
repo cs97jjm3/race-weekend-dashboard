@@ -249,6 +249,17 @@ appears at the top of the feed with a Copy button, ready to paste into a message
 After the race, the "What's happening?" button becomes "Race debrief" so you can ask for
 another one. It costs well under a penny.
 
+## Matching the telly
+
+F1's timing feed is ahead of the TV picture, so without a delay the dashboard can show an
+overtake or a crash before you see it. Set `FEED_DELAY` in `config.py` to hold everything back
+by that many seconds: 20 suits most TV, and streams may need 30 or more. Everything waits the
+same amount (timing, the feed, alerts, radio, commentary and the session clock), and the badge
+at the top says "LIVE · 20s BEHIND" so nobody wonders why. You can also try a different value
+for one session with `py dashboard.py --delay 30`. Recordings still save everything as it
+arrives. If you use the flag lights in Moby's Home, they already get the delayed picture, so
+set their own `flag_delay` to 0 or a couple of seconds.
+
 ## Telly mode and sound
 
 Telly mode (top right, or press T) makes everything bigger and hides the buttons, for
@@ -326,10 +337,15 @@ phone can be set up differently.
 
 The bar along the top shows dry or rain, air and track temperature, humidity and wind,
 straight from F1's timing. Click it to open the weather window: a rain radar map with a
-5-mile circle round the circuit (change WEATHER_RADIUS_MILES in config.py) (radar from RainViewer, background map from Esri, playing the last two hours), the
+5-mile circle round the circuit (change WEATHER_RADIUS_MILES in config.py) (background map from Esri), the
 conditions at the track now, and Open-Meteo's forecast for rain at the circuit over the
-next three hours in 15-minute steps. Radar detail is coarse that close in, so treat the
-forecast as the better guide. Circuit locations are in `config.py` under CIRCUIT_COORDS.
+next three hours in 15-minute steps. The radar comes from LibreWXR, which is free and needs
+no key: it plays the last couple of hours, pauses on now, then carries on into a forecast of
+where the rain is heading over the next hour (marked "Forecast"). In Europe, North America
+and Japan that's built from real radar; elsewhere it's estimated from satellites and weather
+models, so treat it as a guide. If LibreWXR doesn't answer, it falls back to RainViewer,
+which has no forecast and coarser detail. The radar and forecast refresh every few minutes
+while the window is open. Circuit locations are in `config.py` under CIRCUIT_COORDS.
 
 The little light in the top right shows LIVE when data is flowing, QUIET or NO DATA if
 it stops, and REPLAY when you're playing something back.

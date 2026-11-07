@@ -12,6 +12,7 @@ import os
 import queue
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 
 import config
@@ -52,6 +53,12 @@ def decode(audio):
     return np.concatenate(chunks).astype(np.float32) / 32768.0
 
 
+def clip_url(base, clip):
+    """The web address of a clip. F1's folder names can have accents in them (São Paulo,
+    México), which have to be written the web way (S%C3%A3o) or the request fails."""
+    return STATIC + urllib.parse.quote(base + clip, safe="/")
+
+
 class Radio:
     def __init__(self, race):
         self.race = race
@@ -75,7 +82,7 @@ class Radio:
         if token:
             headers["Authorization"] = "Bearer " + token
         try:
-            with urllib.request.urlopen(urllib.request.Request(STATIC + base + clip, headers=headers), timeout=15) as r:
+            with urllib.request.urlopen(urllib.request.Request(clip_url(base, clip), headers=headers), timeout=15) as r:
                 audio = r.read()
         except urllib.error.HTTPError as e:
             return None, "locked" if e.code in (401, 403) else "HTTP %s" % e.code
@@ -101,7 +108,7 @@ class Radio:
             event = self.q.get()
             audio, why = self.fetch(event.get("audio", ""))
             if audio is None:
-                event["radioNote"] = "Locked, needs F1 TV" if why == "locked" else "Clip not available"
+                event["radioNote"] = "Locked, needs F1 TV" if why == "locked" else "Clip not available (%s)" % why
                 log.info("Team radio clip not available: %s", why)
                 continue
             if not self.available():

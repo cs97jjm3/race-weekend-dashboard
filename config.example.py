@@ -61,6 +61,11 @@ ALERT_COOLDOWN_SECONDS = 90
 AI_PROVIDER = "claude"
 # A back-up to try if the first one fails or is busy (it needs its own key below), e.g. "claude".
 AI_FALLBACK = ""
+# Seconds to hold everything back, so the dashboard matches the telly instead of giving things
+# away before you see them. F1's timing is ahead of the TV, and streams are further behind.
+# 0 is as live as it gets; 20 suits most TV; try 30 or more for streaming.
+FEED_DELAY = 0
+
 # Automatic AI commentary in the feed (every 5 laps or so in a race). There's also a switch on screen.
 AI_COMMENTARY = True
 

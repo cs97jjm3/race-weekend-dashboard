@@ -369,6 +369,8 @@ def main():
                     help="replay a past session, e.g. 2026 Singapore Race")
     ap.add_argument("--folder", help="replay from saved .jsonStream files in this folder")
     ap.add_argument("--speed", type=float, default=10, help="replay speed (default 10x)")
+    ap.add_argument("--delay", type=float, default=None, metavar="SECONDS",
+                    help="show live timing this many seconds late, to match the telly (default FEED_DELAY in config.py)")
     ap.add_argument("--from-lap", type=int, default=0, help="jump the replay to this lap")
     ap.add_argument("--demo", nargs="?", const="race", choices=["race", "quali"],
                     help="play a made-up race (or 'quali' for qualifying) to try the screen out")
@@ -575,8 +577,12 @@ def main():
                           folder=args.folder, start_lap=args.from_lap, clock=race.set_clock)
     else:
         rec = None if args.no_record else Recorder(os.path.join(HERE, "recordings"))
-        feed = LiveFeed(race.update, status, recorder=rec)
+        delay = args.delay if args.delay is not None else getattr(config, "FEED_DELAY", 0)
+        race.delay = max(0, delay or 0)
+        feed = LiveFeed(race.update, status, recorder=rec, delay=race.delay)
         status("Connecting to F1 live timing...")
+        if race.delay:
+            log.info("Everything is shown %g seconds behind live, to match the telly", race.delay)
 
     threading.Thread(target=feed.run, daemon=True).start()
     gate = share.Gate()
